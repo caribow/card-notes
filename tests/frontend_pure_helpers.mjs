@@ -10,6 +10,21 @@ function functionLine(name) {
   return match[0];
 }
 
+function functionBlock(name) {
+  const start = html.indexOf(`function ${name}(`);
+  assert.notEqual(start, -1, `missing function ${name}`);
+  let depth = 0;
+  let opened = false;
+  for (let i = start; i < html.length; i += 1) {
+    if (html[i] === '{') { depth += 1; opened = true; }
+    if (html[i] === '}' && opened) {
+      depth -= 1;
+      if (depth === 0) return html.slice(start, i + 1);
+    }
+  }
+  throw new Error(`unterminated function ${name}`);
+}
+
 const storage = new Map();
 const context = {
   localStorage: {
@@ -35,6 +50,7 @@ vm.runInContext([
   'editDraftKey', 'nextDraftRevision', 'saveDraft', 'readDraft', 'getDraftRevision', 'clearDraft', 'clearDraftIfRevision', 'touchDraftRevision', 'chooseModalDraft', 'isEditDraftCurrent', 'isUploadSessionCurrent',
   'isSignedUrlCacheFresh', 'noteTitle', 'findNoteByTitle', 'noteLinkLabel', 'noteLinkToken', 'parseBilink',
 ].map(functionLine).join('\n'), context);
+vm.runInContext([functionBlock('escapeHTML'), functionBlock('renderMD')].join('\n'), context);
 
 const userAQuick = context.draftStorageKey(context.QUICK_DRAFT_KEY, 'user-a');
 const userBQuick = context.draftStorageKey(context.QUICK_DRAFT_KEY, 'user-b');
@@ -73,6 +89,17 @@ context.localStorage.setItem('legacy-quick', JSON.stringify('legacy quick text')
 assert.equal(context.readDraft('legacy-quick', ''), 'legacy quick text', 'legacy string drafts must remain readable');
 context.localStorage.setItem('legacy-object', JSON.stringify({ text: 'legacy object' }));
 assert.equal(context.readDraft('legacy-object', null).text, 'legacy object', 'legacy object drafts must remain readable');
+
+assert.equal(
+  context.renderMD('1. ordered\n- unordered'),
+  '<ol><li>ordered</li></ol><ul><li>unordered</li></ul>',
+  'an ordered list followed by an unordered list must render as adjacent blocks',
+);
+assert.equal(
+  context.renderMD('- unordered\n1. ordered'),
+  '<ul><li>unordered</li></ul><ol><li>ordered</li></ol>',
+  'an unordered list followed by an ordered list must render as adjacent blocks',
+);
 
 assert.equal(context.noteLinkToken(context.notes[1]), '#8|重复标题');
 assert.equal(context.parseBilink('#8|重复标题').note.id, 8, 'stable ID link must resolve the intended duplicate title');

@@ -15,12 +15,14 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("function parseBilink(value)", HTML)
         self.assertRegex(HTML, r"function openModal\([\s\S]*?setSelectionRange\(noteTextEl\.value\.length,noteTextEl\.value\.length\)")
 
-    def test_detail_editor_has_one_cancel_and_embedded_format_bar(self):
+    def test_detail_editor_has_one_cancel_and_integrated_submit(self):
         self.assertNotIn('id="detailEditCancel"', HTML)
         self.assertNotIn('id="detailEditTb"', HTML)
         self.assertIn('id="detailBackText">返回', HTML)
         self.assertIn('id="detailEditSave"', HTML)
-        self.assertIn('class="format-panel detail-format-panel"', HTML)
+        self.assertIn('id="detailEditorSubmit"', HTML)
+        self.assertIn('.detail-mask.editing .detail-edit-save{display:none}', HTML)
+        self.assertIn("document.getElementById('detailEditSave').click()", HTML)
         self.assertRegex(HTML, r"openDetailEdit\(id\)[\s\S]*?detailBackText'\)\.textContent='取消'")
 
     def test_recorded_on_drives_display_but_created_at_is_preserved(self):
@@ -35,10 +37,19 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("recorded_on:n.recorded_on||null", HTML)
 
     def test_format_tools_are_collapsible_and_discoverable_in_editors(self):
-        self.assertGreaterEqual(HTML.count('<summary>Aa 格式</summary>'), 2)
+        self.assertEqual(HTML.count('<summary>Aa 格式</summary>'), 1)
         for label in ('@ 引用', '# 标签', '图片'):
             self.assertIn(label, HTML)
+        self.assertIn('class="detail-compose-toolbar"', HTML)
+        for tool in ('bold', 'list', 'numbered', 'bilink'):
+            self.assertIn(f'data-md="{tool}"', HTML)
+        self.assertNotIn('class="format-panel detail-format-panel"', HTML)
         self.assertNotRegex(HTML, r'<div class="detail-topbar">[\s\S]{0,1200}data-md=')
+
+    def test_numbered_list_tool_is_supported_end_to_end(self):
+        self.assertIn("case'numbered':ins='1. '+(sel||'列表项')", HTML)
+        self.assertIn("<ol>", HTML)
+        self.assertIn("html=html.replace(/^\\d+\\. (.+)$/gm", HTML)
 
     def test_drafts_survive_expansion_and_clear_only_after_success(self):
         self.assertIn("const QUICK_DRAFT_KEY='card-notes-draft-quick'", HTML)
@@ -108,22 +119,27 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("图片不能超过 10MB", HTML)
         self.assertIn("async function removeImg(i)", HTML)
 
-    def test_detail_editor_uses_content_first_visual_hierarchy(self):
+    def test_detail_editor_uses_flomo_style_compose_surface(self):
         editor = re.search(r'detailContent\.innerHTML=`(<div class="detail-inner detail-editor">.*?)`;', HTML)
         self.assertIsNotNone(editor)
         assert editor is not None
         markup = editor.group(1)
-        self.assertLess(markup.index('detail-editor-body'), markup.index('detail-editor-meta'))
-        self.assertLess(markup.index('detail-editor-meta'), markup.index('detail-attachments'))
-        self.assertIn('<details class=\"detail-attachments\">', markup)
-        self.assertIn('class=\"detail-meta-label\">日期', markup)
-        self.assertIn('class=\"detail-meta-label\">标签', markup)
+        self.assertLess(markup.index('detail-edit-area'), markup.index('detailImgThumbs'))
+        self.assertLess(markup.index('detailImgThumbs'), markup.index('detailEditorOptions'))
+        self.assertLess(markup.index('detailEditorOptions'), markup.index('detail-compose-toolbar'))
+        self.assertIn('class=\"detail-compose\"', markup)
+        self.assertIn('id=\"detailTagTool\"', markup)
+        self.assertIn('id=\"detailImgAddBtn\"', markup)
+        self.assertIn('id=\"detailDateTool\"', markup)
+        self.assertIn('id=\"detailEditorSubmit\"', markup)
         self.assertIn('id=\"detailAttachmentCount\"', markup)
-        self.assertNotIn('class=\"date-field\"', markup)
-        self.assertNotIn('class=\"detail-edit-images\"', markup)
-        self.assertIn('.detail-editor-meta{', HTML)
-        self.assertIn('.detail-date-input{', HTML)
-        self.assertIn('.detail-img-add-btn{', HTML)
+        self.assertNotIn('detail-editor-meta', markup)
+        self.assertNotIn('detail-attachments', markup)
+        self.assertNotIn('detail-format-panel', markup)
+        self.assertIn('.detail-compose{', HTML)
+        self.assertIn('.detail-compose-toolbar{', HTML)
+        self.assertIn('.detail-submit{', HTML)
+        self.assertIn('function toggleDetailEditorOption', HTML)
         self.assertRegex(HTML, r"async function renderDetailThumbs\(\)\{[^\n]*detailAttachmentCount")
 
     def test_detail_image_editor_supports_existing_delete_and_add(self):
