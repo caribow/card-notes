@@ -2,10 +2,10 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>卡片笔记</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.8"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -224,13 +224,22 @@ input,textarea{font-family:inherit;outline:none;border:none}
 .modal-head-right{display:flex;align-items:center;gap:4px}
 .modal-close{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:18px}
 .modal-close:hover{background:var(--hover-bg);color:var(--text)}
-.modal-toolbar{display:flex;gap:2px;margin-bottom:8px;padding:3px;background:var(--hover-bg);border-radius:7px;flex-wrap:wrap}
+.format-panel{margin-bottom:8px;border:1px solid var(--border);border-radius:7px;background:var(--bg-soft)}
+.format-panel summary{padding:6px 10px;font-size:12px;color:var(--text-2);cursor:pointer;list-style:none;user-select:none}
+.format-panel summary::-webkit-details-marker{display:none}
+.format-panel summary::after{content:'›';float:right;transition:transform .15s}
+.format-panel[open] summary::after{transform:rotate(90deg)}
+.modal-toolbar{display:flex;gap:2px;padding:3px;border-top:1px solid var(--border-soft);flex-wrap:wrap}
+.format-hints{display:flex;gap:12px;padding:4px 8px 7px;font-size:11px;color:var(--text-3);font-family:var(--mono);flex-wrap:wrap}
 .md-btn{min-width:28px;height:26px;padding:0 6px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--text-2);transition:background .15s,color .15s;font-family:var(--mono)}
 .md-btn:hover{background:var(--bg);color:var(--green)}
 .md-btn b{font-weight:700}
 .modal-textarea{flex:1;min-height:0;width:100%;resize:none;font-size:14.5px;line-height:1.75;color:var(--text);background:var(--bg-soft);border:1px solid var(--border);border-radius:8px;padding:12px 14px;transition:border-color .2s}
 .modal-textarea:focus{border-color:var(--green);background:var(--bg)}
 .modal-tags{margin-top:10px}
+.date-field{display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap;margin-top:10px;color:var(--text-2);font-size:12px}
+.date-field input{border:1px solid var(--border);background:var(--bg-soft);color:var(--text);border-radius:7px;padding:7px 9px}
+.date-field span{font-size:11px;color:var(--text-3)}
 .modal-tag-input{width:100%;font-family:var(--mono);font-size:12.5px;color:var(--text);background:var(--bg-soft);border:1.5px dashed var(--border);border-radius:8px;padding:10px 14px;transition:border-color .2s,color .2s}
 .modal-tag-input:focus{border-color:var(--green);background:var(--bg);border-style:solid}
 .modal-tag-input::placeholder{color:var(--text-3)}
@@ -284,16 +293,10 @@ input,textarea{font-family:inherit;outline:none;border:none}
 .detail-back{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text-2);padding:6px 10px;border-radius:7px;transition:background .15s,color .15s;flex-shrink:0}
 .detail-back:hover{background:var(--hover-bg);color:var(--text)}
 .detail-crumb{flex:1;font-family:var(--mono);font-size:11px;color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.detail-edit-tb{flex:1;display:none;align-items:center;gap:2px;padding:3px;background:var(--hover-bg);border-radius:7px;overflow-x:auto;-webkit-overflow-scrolling:touch}
-.detail-edit-tb .md-btn{flex-shrink:0}
-.detail-mask.editing .detail-edit-tb{display:flex}
 .detail-mask.editing .detail-crumb{display:none}
 .detail-mask.editing .detail-menu-btn{display:none}
-.detail-mask.editing .detail-edit-cancel{display:inline-flex}
 .detail-mask.editing .detail-edit-save{display:inline-flex}
-.detail-edit-cancel,.detail-edit-save{display:none;flex-shrink:0}
-.detail-edit-cancel{font-size:13px;color:var(--text-2);padding:6px 14px;border-radius:7px;transition:background .15s}
-.detail-edit-cancel:hover{background:var(--hover-bg)}
+.detail-edit-save{display:none;flex-shrink:0}
 .detail-menu-btn{width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--text-2);transition:background .15s,color .15s;flex-shrink:0}
 .detail-menu-btn:hover{background:var(--hover-bg);color:var(--text)}
 .detail-menu{position:absolute;top:100%;right:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);border-radius:9px;box-shadow:0 8px 28px rgba(0,0,0,.12);padding:4px;min-width:120px;display:none;z-index:30}
@@ -325,6 +328,8 @@ input,textarea{font-family:inherit;outline:none;border:none}
 .detail-txt .bilink:hover{background:var(--green);color:#fff}
 .detail-txt .bilink.broken{color:var(--text-3);background:var(--tag-bg);border-bottom:1px dashed var(--text-3);cursor:default}
 .detail-edit-area{width:100%;min-height:300px;font-size:15.5px;line-height:1.85;color:var(--text);background:transparent;border:none;outline:none;resize:none;padding:0;font-family:var(--sans)}
+.detail-format-panel{margin-top:12px}
+.detail-edit-images{margin-top:14px;padding-top:14px;border-top:1px solid var(--border-soft)}
 .detail-edit-tags{width:100%;font-family:var(--mono);font-size:12px;color:var(--text);background:transparent;border:none;border-top:1px solid var(--border-soft);padding:14px 0 0;margin-top:24px}
 .detail-edit-tags::placeholder{color:var(--text-3)}
 .detail-edit-tags:focus{outline:none}
@@ -406,8 +411,7 @@ input,textarea{font-family:inherit;outline:none;border:none}
   .card-menu-btn{opacity:.35}
   .topbar-tag{max-width:120px;overflow:hidden;text-overflow:ellipsis}
   .detail-inner{padding:20px 18px 80px}
-  .detail-edit-tb{padding:2px}
-  .detail-edit-tb .md-btn{min-width:26px;height:24px;padding:0 4px;font-size:11px}
+  .format-panel .md-btn{min-width:30px;height:28px}
   .heatmap-grid{grid-template-columns:repeat(10,1fr)}
 }
 @media(min-width:769px) and (max-width:1024px){.feed{padding:16px 20px 80px}}
@@ -480,7 +484,7 @@ input,textarea{font-family:inherit;outline:none;border:none}
 <!-- ===== CARD MENU POPUP ===== -->
 <div class="card-menu-pop" id="cardMenuPop">
   <div class="card-menu-item" data-action="edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>编辑</div>
-  <div class="card-menu-item" data-action="copylink"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>复制双链</div>
+  <div class="card-menu-item" data-action="reference-create"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>引用并新建</div>
   <div class="card-menu-item danger" data-action="delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>删除</div>
 </div>
 
@@ -493,17 +497,15 @@ input,textarea{font-family:inherit;outline:none;border:none}
         <button class="modal-close" id="modalClose">&times;</button>
       </div>
     </div>
-    <div class="modal-toolbar">
-      <button class="md-btn" data-md="bold" title="粗体"><b>B</b></button>
-      <button class="md-btn" data-md="italic" title="斜体"><i>I</i></button>
-      <button class="md-btn" data-md="code" title="行内代码">&lt;/&gt;</button>
-      <button class="md-btn" data-md="h" title="标题">H</button>
-      <button class="md-btn" data-md="quote" title="引用">"</button>
-      <button class="md-btn" data-md="list" title="列表">•</button>
-      <button class="md-btn" data-md="link" title="链接">🔗</button>
-      <button class="md-btn" data-md="bilink" title="关联笔记">@</button>
-    </div>
     <textarea class="modal-textarea" id="noteText" placeholder="记录一个想法...&#10;支持 Markdown：**粗体** *斜体* `代码` > 引用&#10;输入 @ 关联其他笔记"></textarea>
+    <details class="format-panel">
+      <summary>Aa 格式</summary>
+      <div class="modal-toolbar">
+        <button class="md-btn" data-md="bold" title="粗体"><b>B</b></button><button class="md-btn" data-md="italic" title="斜体"><i>I</i></button><button class="md-btn" data-md="code" title="行内代码">&lt;/&gt;</button><button class="md-btn" data-md="h" title="标题">H</button><button class="md-btn" data-md="quote" title="引用">"</button><button class="md-btn" data-md="list" title="列表">•</button><button class="md-btn" data-md="link" title="链接">🔗</button><button class="md-btn" data-md="bilink" title="关联笔记">@</button>
+      </div>
+      <div class="format-hints"><span>@ 引用</span><span># 标签</span><span>图片</span></div>
+    </details>
+    <label class="date-field">记录日期（可选） <input type="date" id="noteRecordedOn"><span>留空则使用创建日期</span></label>
     <div class="modal-tags"><input type="text" class="modal-tag-input" id="noteTags" placeholder="标签：工作/银河智学/进校交付（/ 分隔层级，空格分隔多标签）"></div>
     <div class="img-upload">
       <button class="img-add-btn" id="imgAddBtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>添加图片</button>
@@ -526,10 +528,6 @@ input,textarea{font-family:inherit;outline:none;border:none}
     <div class="detail-topbar">
       <button class="detail-back" id="detailBack"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg><span id="detailBackText">返回</span></button>
       <div class="detail-crumb" id="detailCrumb"></div>
-      <div class="detail-edit-tb" id="detailEditTb">
-        <button class="md-btn" data-md="bold"><b>B</b></button><button class="md-btn" data-md="italic"><i>I</i></button><button class="md-btn" data-md="code">&lt;/&gt;</button><button class="md-btn" data-md="h">H</button><button class="md-btn" data-md="quote">"</button><button class="md-btn" data-md="list">•</button><button class="md-btn" data-md="link">🔗</button><button class="md-btn" data-md="bilink">@</button>
-      </div>
-      <button class="detail-edit-cancel" id="detailEditCancel">取消</button>
       <button class="detail-edit-save" id="detailEditSave">保存</button>
       <button class="detail-menu-btn" id="detailMenuBtn" title="更多操作"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg></button>
       <div class="detail-menu" id="detailMenu">
@@ -555,6 +553,11 @@ const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let notes = [];
 let currentTag = null;
 let currentDetailId = null;
+let currentUserId = null;
+const QUICK_DRAFT_KEY='card-notes-draft-quick';
+const NEW_DRAFT_KEY='card-notes-draft-new';
+const EDIT_DRAFT_PREFIX='card-notes-draft-edit-';
+const MODAL_DRAFT_PREFIX='card-notes-draft-modal-';
 
 function dbTimeToLocal(iso){const d=new Date(iso);return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)}
 function localTimeToDB(local){return local.replace(' ','T')+':00'}
@@ -562,21 +565,42 @@ function localTimeToDB(local){return local.replace(' ','T')+':00'}
 async function loadNotes(){
   const {data,error}=await sb.from('notes').select('*').order('created_at',{ascending:false});
   if(error){showToast('加载失败: '+error.message);return}
-  notes=(data||[]).map(n=>({id:n.id,text:n.text,tags:n.tags||[],imgs:n.imgs||[],time:dbTimeToLocal(n.created_at)}));
+  notes=(data||[]).map(n=>({id:n.id,text:n.text,tags:n.tags||[],imgs:n.imgs||[],recorded_on:n.recorded_on||null,created_at:n.created_at,updated_at:n.updated_at,time:dbTimeToLocal(n.created_at)}));
   renderTree();renderHeatmap();updateTopbarTag();render();
 }
 
 /* ============ HELPERS ============ */
-function escapeHTML(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function escapeHTML(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+function escapeAttr(s){return escapeHTML(s)}
+function safeExternalUrl(url){try{const parsed=new URL(String(url),window.location.origin);return parsed.protocol==='http:'||parsed.protocol==='https:'?parsed.href:''}catch(e){return''}}
+function noteDate(n){return String(n.recorded_on||n.time||n.created_at).slice(0,10)}
+function noteSortKey(n){return noteDate(n)+' '+String(n.created_at||n.time||'')}
+function saveDraft(key,value){try{localStorage.setItem(key,JSON.stringify(value))}catch(e){showToast('本地草稿保存失败')}}
+function readDraft(key,fallback){try{const value=JSON.parse(localStorage.getItem(key));return value??fallback}catch(e){return fallback}}
+function clearDraft(key){try{localStorage.removeItem(key)}catch(e){}}
+function draftStorageKey(base,userId=currentUserId){return base+':'+(userId||'signed-out')}
+function quickDraftKey(){return draftStorageKey(QUICK_DRAFT_KEY)}
+function newDraftKey(){return draftStorageKey(NEW_DRAFT_KEY)}
+function modalDraftKey(source){return source==='new'?newDraftKey():draftStorageKey(MODAL_DRAFT_PREFIX+source)}
+function editDraftKey(id){return draftStorageKey(EDIT_DRAFT_PREFIX+id)}
+function chooseModalDraft(existing,prefill,empty){return existing||{...empty,text:prefill??''}}
+function isEditDraftCurrent(draft,note){return !draft||draft.base_updated_at===note.updated_at}
+function migrateLegacyDrafts(){
+  if(!currentUserId)return;
+  [[QUICK_DRAFT_KEY,quickDraftKey()],[NEW_DRAFT_KEY,newDraftKey()]].forEach(([legacy,scoped])=>{if(localStorage.getItem(scoped)===null&&localStorage.getItem(legacy)!==null)localStorage.setItem(scoped,localStorage.getItem(legacy));localStorage.removeItem(legacy)});
+  const legacyEdit=[];for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i);if(key&&key.startsWith(EDIT_DRAFT_PREFIX)&&!key.includes(':'))legacyEdit.push(key)}
+  legacyEdit.forEach(key=>{const scoped=draftStorageKey(key);if(localStorage.getItem(scoped)===null)localStorage.setItem(scoped,localStorage.getItem(key));localStorage.removeItem(key)});
+}
+function todayDate(){return nowTs().slice(0,10)}
+function parseTags(value){return value.trim()?value.trim().split(/\s+/).map(s=>s.replace(/^#/,'')).filter(Boolean):[]}
 function nowTs(){const n=new Date();return n.getFullYear()+'-'+('0'+(n.getMonth()+1)).slice(-2)+'-'+('0'+n.getDate()).slice(-2)+' '+('0'+n.getHours()).slice(-2)+':'+('0'+n.getMinutes()).slice(-2)}
 function fmtTime(s){const d=new Date(s.replace(/-/g,'/'));return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)}
 function fmtDate(s){
   const d=new Date(s.replace(/-/g,'/'));const now=new Date();const today=new Date(now.getFullYear()+'/'+(now.getMonth()+1)+'/'+now.getDate());const yest=new Date(today);yest.setDate(yest.getDate()-1);
   const dd=new Date(d.getFullYear()+'/'+(d.getMonth()+1)+'/'+d.getDate());
-  const w=['SUN','MON','TUE','WED','THU','FRI','SAT'][d.getDay()];
-  if(dd.getTime()===today.getTime())return{label:'今天',sub:'TODAY · '+w,isToday:true};
-  if(dd.getTime()===yest.getTime())return{label:'昨天',sub:'YESTERDAY · '+w,isToday:false};
-  const m=d.getMonth()+1,day=d.getDate();return{label:m+'月'+day+'日',sub:('0'+m).slice(-2)+'.'+('0'+day).slice(-2)+' · '+w,isToday:false};
+  if(dd.getTime()===today.getTime())return{label:'今天',sub:'今天',isToday:true};
+  if(dd.getTime()===yest.getTime())return{label:'昨天',sub:'昨天',isToday:false};
+  const m=d.getMonth()+1,day=d.getDate();return{label:m+'月'+day+'日',sub:m+'月'+day+'日',isToday:false};
 }
 function noteTitle(n){return n.text.split('\n')[0].replace(/[#*`>\-\[\]]/g,'').trim().slice(0,30)}
 function findNoteByTitle(t){return notes.find(n=>noteTitle(n)===t)}
@@ -586,13 +610,15 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 
 /* ============ MARKDOWN ============ */
 function renderMD(text){
+  const links=[];
+  text=String(text??'').replace(/\[([^\]]+?)\]\(([^\s)]+)\)/g,(m,label,url)=>{const safe=safeExternalUrl(url);if(!safe)return label;const token='\u0000LINK'+links.length+'\u0000';links.push(`<a href="${escapeAttr(safe)}" target="_blank" rel="noopener noreferrer">${escapeHTML(label)}</a>`);return token});
   let html=escapeHTML(text);
   html=html.replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/^# (.+)$/gm,'<h1>$1</h1>');
   html=html.replace(/^&gt; (.+)$/gm,'<blockquote>$1</blockquote>');
   html=html.replace(/^[\-\*] (.+)$/gm,'<li>$1</li>').replace(/(<li>.*<\/li>\n?)+/g,m=>'<ul>'+m+'</ul>');
   html=html.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/`(.+?)`/g,'<code>$1</code>');
-  html=html.replace(/\[\[(.+?)\]\]/g,(m,title)=>{const target=findNoteByTitle(title);return target?`<a class="bilink" onclick="openDetail(${target.id});event.stopPropagation()" title="${escapeHTML(target.text.slice(0,40))}">${escapeHTML(title)}</a>`:`<span class="bilink broken">${escapeHTML(title)}</span>`});
-  html=html.replace(/\[(.+?)\]\((.+?)\)/g,'<a href="$2" target="_blank">$1</a>').replace(/\n/g,'<br>');
+  html=html.replace(/\[\[(.+?)\]\]/g,(m,title)=>{const target=findNoteByTitle(title);return target?`<a class="bilink" data-note-id="${Number(target.id)}" title="${escapeAttr(target.text.slice(0,40))}">${escapeHTML(title)}</a>`:`<span class="bilink broken">${escapeHTML(title)}</span>`});
+  html=html.replace(/\n/g,'<br>').replace(/\u0000LINK(\d+)\u0000/g,(m,i)=>links[Number(i)]||'');
   html=html.replace(/<br>(<(?:h[123]|blockquote|ul|li))/g,'$1').replace(/(<\/(?:h[123]|blockquote|ul|li)>)<br>/g,'$1');
   return html;
 }
@@ -613,7 +639,7 @@ function renderHeatmap(){
   const today=new Date();
   const days=91; // ~13 weeks
   const dailyCount={};
-  notes.forEach(n=>{const d=n.time.slice(0,10);dailyCount[d]=(dailyCount[d]||0)+1});
+  notes.forEach(n=>{const d=noteDate(n);dailyCount[d]=(dailyCount[d]||0)+1});
   const cells=[];
   const monthLabels=[];
   let lastMonth=-1;
@@ -633,18 +659,18 @@ function renderHeatmap(){
 }
 
 /* ============ TREE ============ */
-function buildTree(){const root={};notes.forEach(n=>{n.tags.forEach(t=>{const parts=t.split('/');let node=root;parts.forEach(p=>{if(!node[p])node[p]={_count:0,_children:{}};node[p]._count++;node=node[p]._children})})});return root}
+function buildTree(){const root=Object.create(null);notes.forEach(n=>{n.tags.forEach(t=>{const parts=t.split('/');let node=root;parts.forEach(p=>{if(!Object.hasOwn(node,p))node[p]={_count:0,_children:Object.create(null)};node[p]._count++;node=node[p]._children})})});return root}
 function renderTree(){
   const root=buildTree(),el=document.getElementById('tree');let html='';
   html+=`<li class="tree-item tree-leaf"><div class="tree-row ${!currentTag?'active':''}" data-tag="__all__"><span class="tree-toggle">›</span><span class="tree-label">全部笔记</span><span class="tree-count">${notes.length}</span></div></li>`;
   function walk(node,path){Object.keys(node).sort().forEach(k=>{const item=node[k],fp=path?path+'/'+k:k,hc=Object.keys(item._children).length>0,isActive=currentTag===fp;
-    html+=`<li class="tree-item ${hc?'open':''} ${!hc?'tree-leaf':''}"><div class="tree-row ${isActive?'active':''}" data-tag="${fp}"><span class="tree-toggle">${hc?'›':'·'}</span><span class="tree-label">${k}</span><span class="tree-count">${item._count}</span></div>`;
+    html+=`<li class="tree-item ${hc?'open':''} ${!hc?'tree-leaf':''}"><div class="tree-row ${isActive?'active':''}" data-tag="${escapeAttr(fp)}"><span class="tree-toggle">${hc?'›':'·'}</span><span class="tree-label">${escapeHTML(k)}</span><span class="tree-count">${item._count}</span></div>`;
     if(hc){html+='<ul class="tree-children">';walk(item._children,fp);html+='</ul>'}
     html+='</li>'})}
   walk(root,'');el.innerHTML=html;
 }
 function selectTag(tag){currentTag=(tag==='__all__')?null:tag;renderTree();updateTopbarTag();render();closeSidebarMobile()}
-function updateTopbarTag(){const el=document.getElementById('topbarTag');if(currentTag){el.innerHTML='#'+currentTag+' <span class="x">&times;</span>';el.classList.add('show')}else el.classList.remove('show')}
+function updateTopbarTag(){const el=document.getElementById('topbarTag');if(currentTag){el.textContent='#'+currentTag+' ×';el.classList.add('show')}else el.classList.remove('show')}
 document.getElementById('topbarTag').addEventListener('click',()=>selectTag('__all__'));
 document.getElementById('tree').addEventListener('click',function(e){
   const toggle=e.target.closest('.tree-toggle'),row=e.target.closest('.tree-row');if(!row)return;
@@ -655,21 +681,21 @@ document.getElementById('tree').addEventListener('click',function(e){
 
 /* ============ RENDER FEED ============ */
 function getFiltered(){if(!currentTag)return notes;return notes.filter(n=>n.tags.some(t=>t===currentTag||t.startsWith(currentTag+'/')))}
-function render(){const f=getFiltered().slice().sort((a,b)=>b.time.localeCompare(a.time));renderFeed(f)}
+function render(){const f=getFiltered().slice().sort((a,b)=>noteSortKey(b).localeCompare(noteSortKey(a)));renderFeed(f)}
 function renderFeed(list){
   const el=document.getElementById('feed');
   let html=inputCardHTML();
   if(list.length===0){html+=emptyHTML();el.innerHTML=html;bindInputCard();return}
   const groups={};
-  list.forEach(n=>{const k=n.time.slice(0,10);if(!groups[k])groups[k]=[];groups[k].push(n)});
+  list.forEach(n=>{const k=noteDate(n);if(!groups[k])groups[k]=[];groups[k].push(n)});
   Object.keys(groups).forEach(date=>{const info=fmtDate(date);html+=`<div class="date-sep${info.isToday?' today':''}">${info.sub}</div>`;groups[date].forEach(n=>html+=cardHTML(n))});
   el.innerHTML=html;bindInputCard();
 }
 function inputCardHTML(){
   const tagHint=currentTag?'#'+currentTag+' ':'';
   return `<div class="input-card" id="inputCard">
-    <div class="input-card-head"><span class="dot"></span>NOW</div>
-    <textarea id="inputCardText" placeholder="${tagHint}记录一个想法..." rows="2"></textarea>
+    <div class="input-card-head"><span class="dot"></span>随手记</div>
+    <textarea id="inputCardText" placeholder="${escapeAttr(tagHint)}记录一个想法..." rows="2"></textarea>
     <div class="input-card-foot">
       <div class="input-card-tools">
         <button class="input-tool-btn" id="inputCardExpand" title="展开编辑"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>
@@ -683,15 +709,17 @@ function bindInputCard(){
   const sendBtn=document.getElementById('inputCardSend');
   const expandBtn=document.getElementById('inputCardExpand');
   if(!ta)return;
+  ta.value=readDraft(quickDraftKey(),'');
+  sendBtn.classList.toggle('active',ta.value.trim().length>0);
   setupMention(ta);
   // auto-resize + save button state
   ta.addEventListener('input',()=>{
     ta.style.height='auto';ta.style.height=Math.max(44,ta.scrollHeight)+'px';
-    sendBtn.classList.toggle('active',ta.value.trim().length>0);
+    sendBtn.classList.toggle('active',ta.value.trim().length>0);saveDraft(quickDraftKey(),ta.value);
   });
   ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();saveQuickNote()}});
   sendBtn.addEventListener('click',saveQuickNote);
-  expandBtn.addEventListener('click',()=>{const text=ta.value.trim();openModal(text);ta.value='';sendBtn.classList.remove('active')});
+  expandBtn.addEventListener('click',()=>{openModal(ta.value,'quick')});
 }
 async function saveQuickNote(){
   const ta=document.getElementById('inputCardText');
@@ -699,30 +727,32 @@ async function saveQuickNote(){
   const text=ta.value.trim();if(!text)return;
   sendBtn.textContent='保存中...';sendBtn.disabled=true;
   const tags=currentTag?[currentTag]:[];
-  const {data,error}=await sb.from('notes').insert({text,tags,imgs:[]}).select();
+  const recorded_on=null;
+  const {data,error}=await sb.from('notes').insert({text,tags,imgs:[],recorded_on}).select();
   if(error){showToast('保存失败');sendBtn.textContent='保存 ⏎';sendBtn.disabled=false;return}
   const r=data[0];
-  notes.unshift({id:r.id,text:r.text,tags:r.tags||[],imgs:r.imgs||[],time:dbTimeToLocal(r.created_at)});
+  notes.unshift({id:r.id,text:r.text,tags:r.tags||[],imgs:r.imgs||[],recorded_on:r.recorded_on||recorded_on,created_at:r.created_at,updated_at:r.updated_at,time:dbTimeToLocal(r.created_at)});
+  clearDraft(quickDraftKey());
   ta.value='';ta.style.height='auto';sendBtn.textContent='保存 ⏎';sendBtn.disabled=false;sendBtn.classList.remove('active');
   renderTree();renderHeatmap();render();
 }
 function cardHTML(n){
-  const tags=n.tags.map(t=>`<span class="card-tag ${currentTag&&(t===currentTag||t.startsWith(currentTag+'/'))?'match':''}" data-tag="${t}">${t}</span>`).join('');
+  const tags=n.tags.map(t=>`<span class="card-tag ${currentTag&&(t===currentTag||t.startsWith(currentTag+'/'))?'match':''}" data-tag="${escapeAttr(t)}">${escapeHTML(t)}</span>`).join('');
   const preview=n.text.replace(/\[\[(.+?)\]\]/g,'$1').replace(/[#*`>]/g,'').replace(/\n/g,' ');
   const hasImgs=n.imgs&&n.imgs.length>0,isLong=n.text.length>80,fwd=getForwardLinks(n);
   const ind=[];
   if(hasImgs)ind.push(`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>${n.imgs.length}`);
   if(fwd.length>0)ind.push(`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>${fwd.length}`);
   if(isLong)ind.push(`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg>`);
-  return `<div class="card" data-id="${n.id}"><button class="card-menu-btn" data-note-id="${n.id}" title="更多"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg></button><div class="card-ts"><span class="dot"></span>${fmtTime(n.time)} · ${['SUN','MON','TUE','WED','THU','FRI','SAT'][new Date(n.time.replace(/-/g,'/')).getDay()]}</div><div class="card-txt collapsed">${escapeHTML(preview)}</div>${ind.length?`<div class="card-indicators">${ind.map(i=>`<span class="card-ind">${i}</span>`).join('')}</div>`:''}<div class="card-tags">${tags}</div></div>`;
+  return `<div class="card" data-id="${Number(n.id)}"><button class="card-menu-btn" data-note-id="${Number(n.id)}" title="更多"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg></button><div class="card-ts"><span class="dot"></span>${fmtTime(n.time)}</div><div class="card-txt collapsed">${escapeHTML(preview)}</div>${ind.length?`<div class="card-indicators">${ind.map(i=>`<span class="card-ind">${i}</span>`).join('')}</div>`:''}<div class="card-tags">${tags}</div></div>`;
 }
-function emptyHTML(){return `<div class="empty"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg><p>NO NOTES HERE</p></div>`}
+function emptyHTML(){return `<div class="empty"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg><p>这里还没有笔记</p></div>`}
 
 /* ============ CARD MENU ============ */
 const cardMenuPop=document.getElementById('cardMenuPop');let cardMenuNoteId=null;
 function showCardMenu(btn,id){cardMenuNoteId=id;const r=btn.getBoundingClientRect();const pw=140;let l=r.right-pw;if(l<8)l=8;let t=r.bottom+4;if(t+120>window.innerHeight)t=r.top-124;cardMenuPop.style.left=l+'px';cardMenuPop.style.top=t+'px';cardMenuPop.classList.add('show')}
 function hideCardMenu(){cardMenuPop.classList.remove('show');cardMenuNoteId=null}
-cardMenuPop.addEventListener('click',e=>{const item=e.target.closest('.card-menu-item');if(!item)return;const action=item.dataset.action,id=cardMenuNoteId;hideCardMenu();if(!id)return;if(action==='edit')openDetailEdit(id);if(action==='copylink')copyNoteLink(id);if(action==='delete')confirmDelete(id)});
+cardMenuPop.addEventListener('click',e=>{const item=e.target.closest('.card-menu-item');if(!item)return;const action=item.dataset.action,id=cardMenuNoteId;hideCardMenu();if(!id)return;if(action==='edit')openDetailEdit(id);if(action==='reference-create')referenceAndCreate(id);if(action==='delete')confirmDelete(id)});
 document.addEventListener('click',e=>{if(!e.target.closest('#cardMenuPop')&&!e.target.closest('.card-menu-btn'))hideCardMenu()});
 
 /* ============ LIGHTBOX ============ */
@@ -734,50 +764,86 @@ document.getElementById('lightbox').addEventListener('click',e=>{if(e.target.id=
 /* ============ DETAIL VIEW ============ */
 const detailMask=document.getElementById('detailMask'),detailContent=document.getElementById('detailContent'),detailMenu=document.getElementById('detailMenu');
 let detailEditTextarea=null;
+let detailPendingImgs=[];
+let detailOriginalImgs=[];
+const imageUrlCache=new Map();
+function isLegacyImageUrl(value){return /^https?:\/\//i.test(String(value||''))}
+function isSignedUrlCacheFresh(entry,now=Date.now()){return !!entry&&entry.expiresAt>now+60000}
+async function resolveImageUrl(value){
+  if(isLegacyImageUrl(value))return safeExternalUrl(value);
+  const path=String(value||'');if(!path||path.startsWith('/')||path.includes('..'))return'';
+  const cached=imageUrlCache.get(path);if(isSignedUrlCacheFresh(cached))return cached.url;
+  const {data,error}=await sb.storage.from('note-images').createSignedUrl(path,3600);
+  const url=error?'':safeExternalUrl(data&&data.signedUrl);if(url)imageUrlCache.set(path,{url,expiresAt:Date.now()+3600*1000});return url;
+}
+async function removeStoragePaths(paths,failMessage='图片清理失败，请稍后重试'){
+  const clean=[...new Set((paths||[]).filter(path=>path&&!isLegacyImageUrl(path)))];if(!clean.length)return true;
+  const {error}=await sb.storage.from('note-images').remove(clean);if(error){showToast(failMessage);return false}clean.forEach(path=>imageUrlCache.delete(path));return true;
+}
+async function renderImageList(container,values,editable){
+  if(!container)return;container.textContent='';
+  const urls=await Promise.all(values.map(resolveImageUrl));
+  urls.forEach((url,i)=>{if(!url)return;const wrap=document.createElement('div');wrap.className='img-thumb';const img=document.createElement('img');img.src=url;img.alt='笔记图片';img.loading='lazy';wrap.appendChild(img);if(editable){const del=document.createElement('button');del.className='img-thumb-del';del.type='button';del.textContent='×';del.dataset.imageIndex=String(i);del.setAttribute('aria-label','删除图片');wrap.appendChild(del)}else{wrap.className='';img.addEventListener('click',()=>openLightbox(url))}container.appendChild(wrap)});
+}
+async function renderDetailImages(n){const grid=document.getElementById('detailImgsGrid');if(!grid)return;await renderImageList(grid,n.imgs||[],false);grid.classList.toggle('single',(n.imgs||[]).length===1)}
+function persistDetailDraft(){if(!currentDetailId||!detailEditTextarea)return;const n=notes.find(x=>x.id===currentDetailId);if(!n)return;saveDraft(editDraftKey(currentDetailId),{text:detailEditTextarea.value,tags:document.getElementById('detailEditTags').value,recorded_on:document.getElementById('detailEditRecordedOn').value,imgs:[...detailPendingImgs],base_updated_at:n.updated_at})}
 function openDetail(id){
   const n=notes.find(x=>x.id===id);if(!n)return;currentDetailId=id;detailMask.classList.remove('editing');detailMenu.classList.remove('show');
   document.getElementById('detailBackText').textContent='返回';
-  const d=new Date(n.time.replace(/-/g,'/')),w=['SUN','MON','TUE','WED','THU','FRI','SAT'][d.getDay()],fd=d.getFullYear()+'.'+('0'+(d.getMonth()+1)).slice(-2)+'.'+('0'+d.getDate()).slice(-2);
+  const date=noteDate(n),fd=date.replace(/-/g,'.');
   document.getElementById('detailCrumb').textContent='#'+(n.tags[0]||'未分类')+' · '+fd+' '+fmtTime(n.time);
-  let imgs='';
-  if(n.imgs&&n.imgs.length>0){const cls=n.imgs.length===1?'single':'';imgs=`<div class="detail-imgs"><div class="detail-imgs-title">${n.imgs.length} 张图片</div><div class="detail-imgs-grid ${cls}">${n.imgs.map(s=>`<img src="${s}" onclick="openLightbox('${s}')" loading="lazy">`).join('')}</div></div>`}
-  const tagsHTML=n.tags.map(t=>`<span class="detail-tag" onclick="closeDetail();selectTag('${t}')">${t}</span>`).join('');
+  const imgs=n.imgs&&n.imgs.length?`<div class="detail-imgs"><div class="detail-imgs-title">${n.imgs.length} 张图片</div><div class="detail-imgs-grid" id="detailImgsGrid"></div></div>`:'';
+  const tagsHTML=n.tags.map(t=>`<span class="detail-tag" data-tag="${escapeAttr(t)}">${escapeHTML(t)}</span>`).join('');
   const fwd=getForwardLinks(n),back=getBacklinks(n);let links='';
-  if(fwd.length>0||back.length>0){links='<div class="detail-links">';if(fwd.length>0){links+='<div class="detail-links-title"><span class="arrow">→</span> 引用了</div>';fwd.forEach(l=>links+=linkCardHTML(l.note))}if(back.length>0){links+='<div class="detail-links-title" style="margin-top:16px"><span class="arrow">←</span> 被引用</div>';back.forEach(b=>links+=linkCardHTML(b))}links+='</div>'}
-  detailContent.innerHTML=`<div class="detail-inner"><div class="detail-ts"><span class="dot"></span>${fd} · ${w} · ${fmtTime(n.time)}</div><div class="detail-txt">${renderMD(n.text)}</div>${imgs}${tagsHTML?`<div class="detail-tags">${tagsHTML}</div>`:''}${links}</div>`;
-  detailMask.classList.add('show');detailContent.scrollTop=0;
+  if(fwd.length||back.length){links='<div class="detail-links">';if(fwd.length){links+='<div class="detail-links-title"><span class="arrow">→</span> 引用了</div>';fwd.forEach(l=>links+=linkCardHTML(l.note))}if(back.length){links+='<div class="detail-links-title" style="margin-top:16px"><span class="arrow">←</span> 被引用</div>';back.forEach(b=>links+=linkCardHTML(b))}links+='</div>'}
+  detailContent.innerHTML=`<div class="detail-inner"><div class="detail-ts"><span class="dot"></span>${fd} · ${fmtTime(n.time)}</div><div class="detail-txt">${renderMD(n.text)}</div>${imgs}${tagsHTML?`<div class="detail-tags">${tagsHTML}</div>`:''}${links}</div>`;
+  detailMask.classList.add('show');detailContent.scrollTop=0;renderDetailImages(n);
 }
-function openDetailEdit(id){
+async function openDetailEdit(id){
   const n=notes.find(x=>x.id===id);if(!n)return;currentDetailId=id;detailMask.classList.add('editing');detailMenu.classList.remove('show');
   document.getElementById('detailBackText').textContent='取消';
-  detailContent.innerHTML=`<div class="detail-inner"><textarea class="detail-edit-area" id="detailEditText" placeholder="编辑笔记...">${escapeHTML(n.text)}</textarea><input type="text" class="detail-edit-tags" id="detailEditTags" value="${n.tags.join(' ')}" placeholder="标签：工作/银河智学（/ 分隔层级，空格分隔多标签）"></div>`;
+  let draft=readDraft(editDraftKey(id),null);
+  if(!isEditDraftCurrent(draft,n)){const staleUploads=(draft.imgs||[]).filter(path=>!n.imgs.includes(path));if(!await removeStoragePaths(staleUploads,'旧草稿图片清理失败')){detailMask.classList.remove('editing');return}clearDraft(editDraftKey(id));draft=null;showToast('笔记已更新，已忽略旧编辑草稿')}
+  draft=draft||{text:n.text,tags:n.tags.join(' '),recorded_on:n.recorded_on||'',imgs:[...n.imgs],base_updated_at:n.updated_at};
+  detailOriginalImgs=[...n.imgs];
+  detailPendingImgs=[...(draft.imgs||[])];
+  detailContent.innerHTML=`<div class="detail-inner"><textarea class="detail-edit-area" id="detailEditText" placeholder="编辑笔记...">${escapeHTML(draft.text)}</textarea><details class="format-panel detail-format-panel"><summary>Aa 格式</summary><div class="modal-toolbar"><button class="md-btn" data-md="bold"><b>B</b></button><button class="md-btn" data-md="italic"><i>I</i></button><button class="md-btn" data-md="code">&lt;/&gt;</button><button class="md-btn" data-md="h">H</button><button class="md-btn" data-md="quote">"</button><button class="md-btn" data-md="list">•</button><button class="md-btn" data-md="link">🔗</button><button class="md-btn" data-md="bilink">@</button></div><div class="format-hints"><span>@ 引用</span><span># 标签</span><span>图片</span></div></details><label class="date-field">记录日期（可选） <input type="date" id="detailEditRecordedOn" value="${escapeAttr(draft.recorded_on)}"><span>留空则使用创建日期</span></label><input type="text" class="detail-edit-tags" id="detailEditTags" value="${escapeAttr(draft.tags)}" placeholder="标签：工作/银河智学（/ 分隔层级，空格分隔多标签）"><div class="detail-edit-images"><button class="img-add-btn" id="detailImgAddBtn" type="button">添加图片</button><input type="file" id="detailImgFileInput" accept="image/*" multiple hidden><div class="img-thumbs" id="detailImgThumbs"></div></div></div>`;
   detailEditTextarea=document.getElementById('detailEditText');
-  document.getElementById('detailEditTb').querySelectorAll('.md-btn').forEach(btn=>btn.onclick=()=>applyMarkdown(btn.dataset.md,detailEditTextarea));
-  setupMention(detailEditTextarea);detailMask.classList.add('show');detailContent.scrollTop=0;setTimeout(()=>detailEditTextarea.focus(),100);
+  detailContent.querySelectorAll('.modal-toolbar .md-btn').forEach(btn=>btn.onclick=()=>applyMarkdown(btn.dataset.md,detailEditTextarea));
+  ['detailEditText','detailEditTags','detailEditRecordedOn'].forEach(key=>document.getElementById(key).addEventListener('input',persistDetailDraft));
+  document.getElementById('detailImgAddBtn').addEventListener('click',()=>document.getElementById('detailImgFileInput').click());
+  document.getElementById('detailImgFileInput').addEventListener('change',handleDetailImages);
+  document.getElementById('detailImgThumbs').addEventListener('click',e=>{const btn=e.target.closest('[data-image-index]');if(btn)removeDetailImg(Number(btn.dataset.imageIndex))});
+  renderDetailThumbs();setupMention(detailEditTextarea);detailMask.classList.add('show');detailContent.scrollTop=0;setTimeout(()=>detailEditTextarea.focus(),100);
 }
-function linkCardHTML(n){const p=n.text.replace(/\[\[(.+?)\]\]/g,'$1').replace(/[#*`>]/g,'').replace(/\n/g,' ').slice(0,100);const tags=n.tags.map(t=>`<span class="link-card-tag">${t}</span>`).join('');return `<div class="link-card" onclick="openDetail(${n.id})"><div class="link-card-ts">${fmtDate(n.time.slice(0,10)).sub} ${fmtTime(n.time)}</div><div class="link-card-txt">${escapeHTML(p)}</div><div class="link-card-tags">${tags}</div></div>`}
+async function renderDetailThumbs(){await renderImageList(document.getElementById('detailImgThumbs'),detailPendingImgs,true)}
+async function removeDetailImg(i){const path=detailPendingImgs[i];if(!detailOriginalImgs.includes(path)&&!await removeStoragePaths([path]))return;detailPendingImgs.splice(i,1);persistDetailDraft();renderDetailThumbs()}
+async function handleDetailImages(e){const paths=await uploadImageFiles(Array.from(e.target.files));detailPendingImgs.push(...paths);persistDetailDraft();renderDetailThumbs();e.target.value=''}
+function linkCardHTML(n){const p=n.text.replace(/\[\[(.+?)\]\]/g,'$1').replace(/[#*`>]/g,'').replace(/\n/g,' ').slice(0,100);const tags=n.tags.map(t=>`<span class="link-card-tag">${escapeHTML(t)}</span>`).join('');return `<div class="link-card" data-note-id="${Number(n.id)}"><div class="link-card-ts">${fmtDate(noteDate(n)).sub} ${fmtTime(n.time)}</div><div class="link-card-txt">${escapeHTML(p)}</div><div class="link-card-tags">${tags}</div></div>`}
 function closeDetail(){detailMask.classList.remove('show');detailMask.classList.remove('editing');detailMenu.classList.remove('show')}
-document.getElementById('detailBack').addEventListener('click',()=>{if(detailMask.classList.contains('editing'))openDetail(currentDetailId);else closeDetail()});
-document.getElementById('detailEditCancel').addEventListener('click',()=>openDetail(currentDetailId));
+async function cancelDetailEdit(){const n=notes.find(x=>x.id===currentDetailId);if(!n)return;const uploads=detailPendingImgs.filter(path=>!n.imgs.includes(path));if(!await removeStoragePaths(uploads))return;clearDraft(editDraftKey(currentDetailId));openDetail(currentDetailId)}
+document.getElementById('detailBack').addEventListener('click',()=>{if(detailMask.classList.contains('editing'))cancelDetailEdit();else closeDetail()});
 document.getElementById('detailEditSave').addEventListener('click',async()=>{
   const n=notes.find(x=>x.id===currentDetailId);if(!n)return;
-  const newText=detailEditTextarea.value.trim();
-  const ts=document.getElementById('detailEditTags').value.trim();let tags=[];if(ts)ts.split(/\s+/).forEach(s=>{s=s.replace(/^#/,'');if(s)tags.push(s)});
-  const {error}=await sb.from('notes').update({text:newText,tags}).eq('id',currentDetailId);
+  const newText=detailEditTextarea.value.trim(),tags=parseTags(document.getElementById('detailEditTags').value),recorded_on=document.getElementById('detailEditRecordedOn').value||null,oldImgs=[...n.imgs];
+  const {data,error}=await sb.from('notes').update({text:newText,tags,imgs:[...detailPendingImgs],recorded_on}).eq('id',currentDetailId).eq('updated_at',n.updated_at).select();
   if(error){showToast('保存失败');return}
-  n.text=newText;n.tags=tags;renderTree();renderHeatmap();render();openDetail(currentDetailId);
+  if(!data||!data.length){showToast('笔记已在其他设备更新，请先复制当前内容再刷新');return}
+  const saved=data[0];n.text=newText;n.tags=tags;n.imgs=[...detailPendingImgs];n.recorded_on=recorded_on;n.updated_at=saved.updated_at;clearDraft(editDraftKey(currentDetailId));
+  const removed=oldImgs.filter(path=>!detailPendingImgs.includes(path)&&!isLegacyImageUrl(path));if(removed.length)await removeStoragePaths(removed,'笔记已保存，但旧图片清理失败');
+  renderTree();renderHeatmap();render();openDetail(currentDetailId);
 });
 document.getElementById('detailMenuBtn').addEventListener('click',e=>{e.stopPropagation();detailMenu.classList.toggle('show')});
 document.addEventListener('click',e=>{if(!e.target.closest('#detailMenuBtn')&&!e.target.closest('#detailMenu'))detailMenu.classList.remove('show')});
 detailMenu.addEventListener('click',e=>{const item=e.target.closest('.detail-menu-item');if(!item)return;const action=item.dataset.action;detailMenu.classList.remove('show');if(action==='edit')openDetailEdit(currentDetailId);if(action==='delete')confirmDelete(currentDetailId)});
+detailContent.addEventListener('click',e=>{const bilink=e.target.closest('.bilink[data-note-id]'),linkCard=e.target.closest('.link-card[data-note-id]'),tag=e.target.closest('.detail-tag[data-tag]');if(bilink){e.preventDefault();openDetail(Number(bilink.dataset.noteId));return}if(linkCard){openDetail(Number(linkCard.dataset.noteId));return}if(tag){closeDetail();selectTag(tag.dataset.tag)}});
 
-/* ============ COPY LINK ============ */
-function copyNoteLink(id){const n=notes.find(x=>x.id===id);if(!n)return;const link='[['+noteTitle(n)+']]';if(navigator.clipboard)navigator.clipboard.writeText(link).then(()=>showToast('已复制: '+link)).catch(()=>fallbackCopy(link));else fallbackCopy(link)}
-function fallbackCopy(text){const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');showToast('已复制: '+text)}catch(e){}document.body.removeChild(ta)}
+/* ============ REFERENCE AND CREATE ============ */
+function referenceAndCreate(id){const n=notes.find(x=>x.id===id);if(!n)return;openModal('[['+noteTitle(n)+']]\n\n','reference-'+id)}
 
 /* ============ CONFIRM DELETE ============ */
 const confirmMask=document.getElementById('confirmMask');
-function confirmDelete(id){const n=notes.find(x=>x.id===id);if(!n)return;document.getElementById('confirmMsg').textContent='确认删除这条笔记？删除后不可恢复。';confirmMask.classList.add('show');const ok=document.getElementById('confirmOk'),cancel=document.getElementById('confirmCancel');const cleanup=()=>{confirmMask.classList.remove('show');ok.onclick=null;cancel.onclick=null};ok.onclick=async()=>{cleanup();const {error}=await sb.from('notes').delete().eq('id',id);if(error){showToast('删除失败');return}notes=notes.filter(x=>x.id!==id);renderTree();renderHeatmap();render();if(detailMask.classList.contains('show'))closeDetail()};cancel.onclick=cleanup}
+function confirmDelete(id){const n=notes.find(x=>x.id===id);if(!n)return;document.getElementById('confirmMsg').textContent='确认删除这条笔记？删除后不可恢复。';confirmMask.classList.add('show');const ok=document.getElementById('confirmOk'),cancel=document.getElementById('confirmCancel');const cleanup=()=>{confirmMask.classList.remove('show');ok.onclick=null;cancel.onclick=null};ok.onclick=async()=>{cleanup();const {error}=await sb.from('notes').delete().eq('id',id);if(error){showToast('删除失败');return}const paths=(n.imgs||[]).filter(path=>!isLegacyImageUrl(path));if(paths.length)await removeStoragePaths(paths,'笔记已删除，但图片清理失败');clearDraft(editDraftKey(id));notes=notes.filter(x=>x.id!==id);renderTree();renderHeatmap();render();if(detailMask.classList.contains('show'))closeDetail()};cancel.onclick=cleanup}
 document.getElementById('confirmMask').addEventListener('click',e=>{if(e.target===confirmMask)confirmMask.classList.remove('show')});
 
 /* ============ @ MENTION ============ */
@@ -791,35 +857,50 @@ function setupMention(ta){ta.addEventListener('input',()=>setTimeout(()=>checkMe
 document.getElementById('mentionDropdown').addEventListener('mousedown',e=>{e.preventDefault();const item=e.target.closest('.mention-item');if(item)selectMention(parseInt(item.dataset.index))});
 
 /* ============ MODAL ============ */
-const modalMask=document.getElementById('modalMask'),imgFileInput=document.getElementById('imgFileInput'),imgThumbs=document.getElementById('imgThumbs'),noteTextEl=document.getElementById('noteText');
+const modalMask=document.getElementById('modalMask'),imgFileInput=document.getElementById('imgFileInput'),imgThumbs=document.getElementById('imgThumbs'),noteTextEl=document.getElementById('noteText'),noteRecordedOn=document.getElementById('noteRecordedOn');
 let pendingImgs=[];
-function openModal(prefill){noteTextEl.value=prefill||'';document.getElementById('noteTags').value=currentTag?currentTag:'';pendingImgs=[];renderThumbs();modalMask.classList.add('show');setTimeout(()=>noteTextEl.focus(),200)}
+let activeModalSource='new';
+let activeModalDraftKey=null;
+function persistNewDraft(){if(!activeModalDraftKey)return;saveDraft(activeModalDraftKey,{text:noteTextEl.value,tags:document.getElementById('noteTags').value,recorded_on:noteRecordedOn.value,imgs:[...pendingImgs]})}
+function openModal(prefill,source='new'){
+  activeModalSource=source;activeModalDraftKey=modalDraftKey(source);
+  const empty={text:'',tags:currentTag?currentTag:'',recorded_on:'',imgs:[]};
+  const draft=chooseModalDraft(readDraft(activeModalDraftKey,null),prefill,empty);
+  noteTextEl.value=draft.text||'';document.getElementById('noteTags').value=draft.tags||'';noteRecordedOn.value=draft.recorded_on||'';pendingImgs=[...(draft.imgs||[])];persistNewDraft();renderThumbs();modalMask.classList.add('show');
+  setTimeout(()=>{noteTextEl.focus();noteTextEl.setSelectionRange(noteTextEl.value.length,noteTextEl.value.length)},200);
+}
 function closeModal(){modalMask.classList.remove('show')}
-function renderThumbs(){imgThumbs.innerHTML=pendingImgs.map((src,i)=>`<div class="img-thumb"><img src="${src}"><button class="img-thumb-del" onclick="removeImg(${i})">&times;</button></div>`).join('')}
-function removeImg(i){pendingImgs.splice(i,1);renderThumbs()}
+async function renderThumbs(){await renderImageList(imgThumbs,pendingImgs,true)}
+async function removeImg(i){const path=pendingImgs[i];if(!await removeStoragePaths([path]))return;pendingImgs.splice(i,1);persistNewDraft();renderThumbs()}
+async function uploadImageFiles(files){
+  const {data:{user}}=await sb.auth.getUser();if(!user){showToast('请先登录');return[]}
+  const paths=[];
+  for(const f of files){
+    if(!/^image\/(jpeg|png|webp|gif)$/i.test(f.type)){showToast('仅支持 JPG、PNG、WebP 或 GIF');continue}
+    if(f.size>10*1024*1024){showToast('图片不能超过 10MB');continue}
+    const ext=(f.name.split('.').pop()||'jpg').replace(/[^a-zA-Z0-9]/g,'').toLowerCase()||'jpg';
+    const fileName=user.id+'/'+'img_'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.'+ext;
+    const {error}=await sb.storage.from('note-images').upload(fileName,f,{contentType:f.type});
+    if(error){showToast('图片上传失败');continue}paths.push(fileName);
+  }
+  return paths;
+}
 document.getElementById('modalClose').addEventListener('click',closeModal);
 document.getElementById('btnCancel').addEventListener('click',closeModal);
 modalMask.addEventListener('click',e=>{if(e.target===modalMask)closeModal()});
+[noteTextEl,document.getElementById('noteTags'),noteRecordedOn].forEach(el=>el.addEventListener('input',persistNewDraft));
 document.getElementById('imgAddBtn').addEventListener('click',()=>imgFileInput.click());
-imgFileInput.addEventListener('change',async()=>{
-  for(const f of Array.from(imgFileInput.files)){
-    const fileName='img_'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.'+(f.name.split('.').pop()||'jpg');
-    const {error}=await sb.storage.from('note-images').upload(fileName,f,{contentType:f.type});
-    if(error){showToast('图片上传失败');continue}
-    const {data:pubData}=sb.storage.from('note-images').getPublicUrl(fileName);
-    pendingImgs.push(pubData.publicUrl);renderThumbs();
-  }
-  imgFileInput.value='';
-});
+imgThumbs.addEventListener('click',e=>{const btn=e.target.closest('[data-image-index]');if(btn)removeImg(Number(btn.dataset.imageIndex))});
+imgFileInput.addEventListener('change',async()=>{pendingImgs.push(...await uploadImageFiles(Array.from(imgFileInput.files)));persistNewDraft();renderThumbs();imgFileInput.value=''});
 document.getElementById('btnSave').addEventListener('click',async()=>{
   const text=noteTextEl.value.trim();if(!text&&pendingImgs.length===0)return;
-  const ts=document.getElementById('noteTags').value.trim();let tags=[];if(ts)ts.split(/\s+/).forEach(s=>{s=s.replace(/^#/,'');if(s)tags.push(s)});
+  const tags=parseTags(document.getElementById('noteTags').value),recorded_on=noteRecordedOn.value||null;
   const saveBtn=document.getElementById('btnSave');saveBtn.textContent='保存中...';saveBtn.disabled=true;
-  const {data,error}=await sb.from('notes').insert({text,tags,imgs:[...pendingImgs]}).select();
+  const {data,error}=await sb.from('notes').insert({text,tags,imgs:[...pendingImgs],recorded_on}).select();
   if(error){showToast('保存失败');saveBtn.textContent='保存';saveBtn.disabled=false;return}
   const r=data[0];
-  notes.unshift({id:r.id,text:r.text,tags:r.tags||[],imgs:r.imgs||[],time:dbTimeToLocal(r.created_at)});
-  saveBtn.textContent='保存';saveBtn.disabled=false;
+  notes.unshift({id:r.id,text:r.text,tags:r.tags||[],imgs:r.imgs||[],recorded_on:r.recorded_on||recorded_on,created_at:r.created_at,updated_at:r.updated_at,time:dbTimeToLocal(r.created_at)});
+  clearDraft(activeModalDraftKey);if(activeModalSource==='quick')clearDraft(quickDraftKey());pendingImgs=[];saveBtn.textContent='保存';saveBtn.disabled=false;
   renderTree();renderHeatmap();render();closeModal();
 });
 document.querySelectorAll('.modal-toolbar .md-btn').forEach(btn=>btn.addEventListener('click',()=>applyMarkdown(btn.dataset.md,noteTextEl)));
@@ -838,7 +919,7 @@ document.getElementById('searchInput').addEventListener('input',function(){const
   // render without input card during search
   const el=document.getElementById('feed');let html='';
   if(f.length===0){el.innerHTML=inputCardHTML()+emptyHTML();bindInputCard();return}
-  const groups={};f.forEach(n=>{const k=n.time.slice(0,10);if(!groups[k])groups[k]=[];groups[k].push(n)});
+  const groups={};f.sort((a,b)=>noteSortKey(b).localeCompare(noteSortKey(a))).forEach(n=>{const k=noteDate(n);if(!groups[k])groups[k]=[];groups[k].push(n)});
   html=inputCardHTML();
   Object.keys(groups).forEach(date=>{const info=fmtDate(date);html+=`<div class="date-sep${info.isToday?' today':''}">${info.sub}</div>`;groups[date].forEach(n=>html+=cardHTML(n))});
   el.innerHTML=html;bindInputCard();
@@ -861,11 +942,12 @@ const loginMask=document.getElementById('loginMask'),loginBtn=document.getElemen
 
 async function initAuth(){
   const {data:{session}}=await sb.auth.getSession();
-  if(session){showApp()}else{showLogin()}
+  if(session){showApp(session.user.id)}else{showLogin()}
 }
 
 function showLogin(){loginMask.classList.add('show');loginEmail.focus()}
-function showApp(){
+function showApp(userId){
+  currentUserId=userId;migrateLegacyDrafts();
   loginMask.classList.remove('show');
   document.querySelector('.app').classList.add('authed');
   document.getElementById('feed').innerHTML='<div class="empty"><p style="animation:pulse 1.5s ease-in-out infinite">加载中...</p></div>';
@@ -876,16 +958,16 @@ async function doLogin(){
   const email=loginEmail.value.trim(),pass=loginPass.value;
   if(!email||!pass){loginErr.textContent='请输入邮箱和密码';loginErr.classList.add('show');return}
   loginErr.classList.remove('show');loginBtn.textContent='登录中...';loginBtn.disabled=true;
-  const {error}=await sb.auth.signInWithPassword({email,password:pass});
+  const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
   if(error){loginErr.textContent='邮箱或密码错误';loginErr.classList.add('show');loginBtn.textContent='登录';loginBtn.disabled=false;return}
   loginBtn.textContent='登录';loginBtn.disabled=false;
-  showApp();
+  showApp(data.user.id);
 }
 
 loginBtn.addEventListener('click',doLogin);
 loginPass.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
 loginEmail.addEventListener('keydown',e=>{if(e.key==='Enter')loginPass.focus()});
-document.getElementById('logoutBtn').addEventListener('click',async()=>{await sb.auth.signOut();document.querySelector('.app').classList.remove('authed');notes=[];loginEmail.value='';loginPass.value='';showLogin()});
+document.getElementById('logoutBtn').addEventListener('click',async()=>{await sb.auth.signOut();closeModal();closeDetail();imageUrlCache.clear();pendingImgs=[];detailPendingImgs=[];activeModalDraftKey=null;currentUserId=null;document.querySelector('.app').classList.remove('authed');notes=[];loginEmail.value='';loginPass.value='';showLogin()});
 
 /* ============ INIT ============ */
 if(localStorage.getItem('card-notes-sidebar')==='collapsed')document.querySelector('.app').classList.add('sidebar-collapsed');

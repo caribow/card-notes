@@ -1,5 +1,18 @@
 # Card Notes
 
-个人卡片笔记应用，flomo 风格，支持多级标签、双链笔记、图片上传。
+个人卡片笔记应用，面向低阻力记录，支持多级标签、双链引用、图片、日期调整和移动端编辑。
 
-技术栈：Supabase + 纯前端 HTML。
+技术栈：Supabase + GitHub Pages + 单页 HTML。
+
+## 安全边界
+
+- `notes` 通过 `owner_id = auth.uid()` 的 RLS 策略隔离用户数据。
+- `note-images` 为私有 Storage bucket；前端仅保存对象路径，读取时生成短期 signed URL。
+- 前端只使用 Supabase publishable key；`service_role` 仅存在于服务端 Edge Function 环境。
+
+## 本地检查
+
+```bash
+python3 -m unittest discover -s tests -v
+node tests/frontend_pure_helpers.mjs
+```
