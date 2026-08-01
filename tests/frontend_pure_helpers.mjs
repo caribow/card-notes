@@ -10,7 +10,14 @@ function functionLine(name) {
   return match[0];
 }
 
+const storage = new Map();
 const context = {
+  localStorage: {
+    getItem: key => storage.has(key) ? storage.get(key) : null,
+    setItem: (key, value) => storage.set(key, String(value)),
+    removeItem: key => storage.delete(key),
+  },
+  draftRevisionSeq: 0,
   currentUserId: 'user-a',
   QUICK_DRAFT_KEY: 'card-notes-draft-quick',
   NEW_DRAFT_KEY: 'card-notes-draft-new',
@@ -25,7 +32,7 @@ const context = {
 vm.createContext(context);
 vm.runInContext([
   'draftStorageKey', 'quickDraftKey', 'newDraftKey', 'modalDraftKey',
-  'editDraftKey', 'chooseModalDraft', 'isEditDraftCurrent', 'isUploadSessionCurrent',
+  'editDraftKey', 'nextDraftRevision', 'saveDraft', 'readDraft', 'getDraftRevision', 'clearDraft', 'clearDraftIfRevision', 'touchDraftRevision', 'chooseModalDraft', 'isEditDraftCurrent', 'isUploadSessionCurrent',
   'isSignedUrlCacheFresh', 'noteTitle', 'findNoteByTitle', 'noteLinkLabel', 'noteLinkToken', 'parseBilink',
 ].map(functionLine).join('\n'), context);
 
@@ -48,6 +55,24 @@ assert.equal(context.isUploadSessionCurrent(4, 4, 'draft-a', 'draft-a', true), t
 assert.equal(context.isUploadSessionCurrent(4, 5, 'draft-a', 'draft-a', true), false);
 assert.equal(context.isUploadSessionCurrent(4, 4, 'draft-a', 'draft-b', true), false);
 assert.equal(context.isUploadSessionCurrent(4, 4, 'draft-a', 'draft-a', false), false);
+
+const revision1 = context.saveDraft('draft-revision', { text: 'same' });
+const revision2 = context.saveDraft('draft-revision', { text: 'same' });
+assert.notEqual(revision1, revision2, 'same draft content in a new generation must get a new revision');
+assert.equal(context.clearDraftIfRevision('draft-revision', revision1), false, 'an old callback must not clear a newer equal-content draft');
+assert.equal(context.clearDraftIfRevision('draft-revision', revision2), true);
+assert.equal(context.localStorage.getItem('draft-revision'), null);
+const quickRevision1 = context.saveDraft('quick-touch', 'same quick draft');
+assert.equal(context.readDraft('quick-touch', ''), 'same quick draft', 'quick string draft must preserve its type and value');
+const quickRevision2 = context.touchDraftRevision('quick-touch');
+assert.notEqual(quickRevision1, quickRevision2, 'reopening an unchanged quick draft must advance its revision');
+assert.equal(context.readDraft('quick-touch', ''), 'same quick draft');
+context.saveDraft('object-draft', { text: 'same object draft', imgs: [] });
+assert.equal(context.readDraft('object-draft', null).text, 'same object draft', 'object drafts must preserve their shape');
+context.localStorage.setItem('legacy-quick', JSON.stringify('legacy quick text'));
+assert.equal(context.readDraft('legacy-quick', ''), 'legacy quick text', 'legacy string drafts must remain readable');
+context.localStorage.setItem('legacy-object', JSON.stringify({ text: 'legacy object' }));
+assert.equal(context.readDraft('legacy-object', null).text, 'legacy object', 'legacy object drafts must remain readable');
 
 assert.equal(context.noteLinkToken(context.notes[1]), '#8|重复标题');
 assert.equal(context.parseBilink('#8|重复标题').note.id, 8, 'stable ID link must resolve the intended duplicate title');

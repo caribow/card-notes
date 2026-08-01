@@ -575,9 +575,14 @@ function escapeAttr(s){return escapeHTML(s)}
 function safeExternalUrl(url){try{const parsed=new URL(String(url),window.location.origin);return parsed.protocol==='http:'||parsed.protocol==='https:'?parsed.href:''}catch(e){return''}}
 function noteDate(n){return String(n.recorded_on||n.time||n.created_at).slice(0,10)}
 function noteSortKey(n){return noteDate(n)+' '+String(n.created_at||n.time||'')}
-function saveDraft(key,value){try{localStorage.setItem(key,JSON.stringify(value))}catch(e){showToast('本地草稿保存失败')}}
-function readDraft(key,fallback){try{const value=JSON.parse(localStorage.getItem(key));return value??fallback}catch(e){return fallback}}
+let draftRevisionSeq=0;
+function nextDraftRevision(){draftRevisionSeq+=1;return Date.now().toString(36)+'-'+draftRevisionSeq.toString(36)+'-'+Math.random().toString(36).slice(2,8)}
+function saveDraft(key,value){try{const revision=nextDraftRevision(),stored={value,_draftRevision:revision};localStorage.setItem(key,JSON.stringify(stored));return revision}catch(e){showToast('本地草稿保存失败');return null}}
+function readDraft(key,fallback){try{const stored=JSON.parse(localStorage.getItem(key));if(stored&&typeof stored==='object'&&Object.prototype.hasOwnProperty.call(stored,'value')&&Object.prototype.hasOwnProperty.call(stored,'_draftRevision'))return stored.value??fallback;return stored??fallback}catch(e){return fallback}}
+function getDraftRevision(key){try{const stored=JSON.parse(localStorage.getItem(key));return stored&&typeof stored==='object'&&stored._draftRevision||null}catch(e){return null}}
 function clearDraft(key){try{localStorage.removeItem(key)}catch(e){}}
+function clearDraftIfRevision(key,expectedRevision){if(getDraftRevision(key)!==expectedRevision)return false;clearDraft(key);return true}
+function touchDraftRevision(key){const value=readDraft(key,null);return value===null?null:saveDraft(key,value)}
 function draftStorageKey(base,userId=currentUserId){return base+':'+(userId||'signed-out')}
 function quickDraftKey(){return draftStorageKey(QUICK_DRAFT_KEY)}
 function newDraftKey(){return draftStorageKey(NEW_DRAFT_KEY)}
@@ -778,6 +783,7 @@ let detailEditTextarea=null;
 let detailPendingImgs=[];
 let detailOriginalImgs=[];
 let detailEditSession=0;
+let detailSaveInFlight=false;
 const imageUrlCache=new Map();
 function isLegacyImageUrl(value){return /^https?:\/\//i.test(String(value||''))}
 function isSignedUrlCacheFresh(entry,now=Date.now()){return !!entry&&entry.expiresAt>now+60000}
@@ -799,6 +805,7 @@ async function renderImageList(container,values,editable){
 }
 async function renderDetailImages(n){const grid=document.getElementById('detailImgsGrid');if(!grid)return;await renderImageList(grid,n.imgs||[],false);grid.classList.toggle('single',(n.imgs||[]).length===1)}
 function persistDetailDraft(){if(!currentDetailId||!detailEditTextarea)return;const n=notes.find(x=>x.id===currentDetailId);if(!n)return;saveDraft(editDraftKey(currentDetailId),{text:detailEditTextarea.value,tags:document.getElementById('detailEditTags').value,recorded_on:document.getElementById('detailEditRecordedOn').value,imgs:[...detailPendingImgs],base_updated_at:n.updated_at})}
+function setDetailSaving(saving){detailSaveInFlight=saving;['detailBack','detailMenuBtn','detailEditSave'].forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=saving});detailContent.querySelectorAll('input,textarea,button').forEach(el=>el.disabled=saving)}
 function openDetail(id){
   detailEditSession++;const n=notes.find(x=>x.id===id);if(!n)return;currentDetailId=id;detailMask.classList.remove('editing');detailMenu.classList.remove('show');
   document.getElementById('detailBackText').textContent='返回';
@@ -834,17 +841,21 @@ async function removeDetailImg(i){const path=detailPendingImgs[i];if(!detailOrig
 async function handleDetailImages(e){const input=e.target,session=detailEditSession,noteId=currentDetailId,draftKey=editDraftKey(noteId),paths=await uploadImageFiles(Array.from(input.files));if(!isUploadSessionCurrent(session,detailEditSession,draftKey,editDraftKey(currentDetailId),detailMask.classList.contains('editing'))){await removeStoragePaths(paths,'已清理取消编辑后的图片');input.value='';return}detailPendingImgs.push(...paths);persistDetailDraft();renderDetailThumbs();input.value=''}
 function linkCardHTML(n){const p=stripBilinks(n.text).replace(/[#*`>]/g,'').replace(/\n/g,' ').slice(0,100);const tags=n.tags.map(t=>`<span class="link-card-tag">${escapeHTML(t)}</span>`).join('');return `<div class="link-card" data-note-id="${Number(n.id)}"><div class="link-card-ts">${fmtDate(noteDate(n)).sub} ${fmtTime(n.time)}</div><div class="link-card-txt">${escapeHTML(p)}</div><div class="link-card-tags">${tags}</div></div>`}
 function closeDetail(){detailEditSession++;detailMask.classList.remove('show');detailMask.classList.remove('editing');detailMenu.classList.remove('show')}
-async function cancelDetailEdit(){const session=++detailEditSession,noteId=currentDetailId,n=notes.find(x=>x.id===noteId);if(!n)return;const uploads=detailPendingImgs.filter(path=>!n.imgs.includes(path));if(!await removeStoragePaths(uploads))return;clearDraft(editDraftKey(noteId));if(session===detailEditSession&&currentDetailId===noteId)openDetail(noteId)}
+async function cancelDetailEdit(){if(detailSaveInFlight){showToast('正在保存，请稍候');return}const session=++detailEditSession,noteId=currentDetailId,n=notes.find(x=>x.id===noteId);if(!n)return;const uploads=detailPendingImgs.filter(path=>!n.imgs.includes(path));if(!await removeStoragePaths(uploads))return;clearDraft(editDraftKey(noteId));if(session===detailEditSession&&currentDetailId===noteId)openDetail(noteId)}
 document.getElementById('detailBack').addEventListener('click',()=>{if(detailMask.classList.contains('editing'))cancelDetailEdit();else closeDetail()});
 document.getElementById('detailEditSave').addEventListener('click',async()=>{
-  const session=detailEditSession,noteId=currentDetailId,n=notes.find(x=>x.id===noteId);if(!n)return;
-  const newText=detailEditTextarea.value.trim(),tags=parseTags(document.getElementById('detailEditTags').value),recorded_on=document.getElementById('detailEditRecordedOn').value||null,oldImgs=[...n.imgs],newImgs=[...detailPendingImgs];
-  const {data,error}=await sb.from('notes').update({text:newText,tags,imgs:newImgs,recorded_on}).eq('id',noteId).eq('updated_at',n.updated_at).select();
-  if(error){showToast('保存失败');return}
-  if(!data||!data.length){showToast('笔记已在其他设备更新，请先复制当前内容再刷新');return}
-  const saved=data[0];n.text=newText;n.tags=tags;n.imgs=newImgs;n.recorded_on=recorded_on;n.updated_at=saved.updated_at;clearDraft(editDraftKey(noteId));
-  const removed=oldImgs.filter(path=>!newImgs.includes(path)&&!isLegacyImageUrl(path));if(removed.length)await removeStoragePaths(removed,'笔记已保存，但旧图片清理失败');
-  renderTree();renderHeatmap();render();if(session===detailEditSession&&currentDetailId===noteId&&detailMask.classList.contains('editing'))openDetail(noteId);else showToast('笔记已保存');
+  if(detailSaveInFlight)return;setDetailSaving(true);
+  const session=detailEditSession,noteId=currentDetailId,n=notes.find(x=>x.id===noteId);if(!n){setDetailSaving(false);return}
+  const draftKey=editDraftKey(noteId),draftRevision=getDraftRevision(draftKey),newText=detailEditTextarea.value.trim(),tags=parseTags(document.getElementById('detailEditTags').value),recorded_on=document.getElementById('detailEditRecordedOn').value||null,oldImgs=[...n.imgs],newImgs=[...detailPendingImgs];
+  try{
+    const {data,error}=await sb.from('notes').update({text:newText,tags,imgs:newImgs,recorded_on}).eq('id',noteId).eq('updated_at',n.updated_at).select();
+    if(error){showToast('保存失败');return}
+    if(!data||!data.length){showToast('笔记已在其他设备更新，请先复制当前内容再刷新');return}
+    const saved=data[0];n.text=newText;n.tags=tags;n.imgs=newImgs;n.recorded_on=recorded_on;n.updated_at=saved.updated_at;clearDraftIfRevision(draftKey,draftRevision);
+    const removed=oldImgs.filter(path=>!newImgs.includes(path)&&!isLegacyImageUrl(path));if(removed.length)await removeStoragePaths(removed,'笔记已保存，但旧图片清理失败');
+    renderTree();renderHeatmap();render();if(session===detailEditSession&&currentDetailId===noteId&&detailMask.classList.contains('editing'))openDetail(noteId);else showToast('笔记已保存');
+  }catch(e){showToast('保存失败，请检查网络后重试')}
+  finally{setDetailSaving(false)}
 });
 document.getElementById('detailMenuBtn').addEventListener('click',e=>{e.stopPropagation();detailMenu.classList.toggle('show')});
 document.addEventListener('click',e=>{if(!e.target.closest('#detailMenuBtn')&&!e.target.closest('#detailMenu'))detailMenu.classList.remove('show')});
@@ -877,7 +888,7 @@ let activeModalDraftKey=null;
 let modalEditSession=0;
 function persistNewDraft(){if(!activeModalDraftKey)return;saveDraft(activeModalDraftKey,{text:noteTextEl.value,tags:document.getElementById('noteTags').value,recorded_on:noteRecordedOn.value,imgs:[...pendingImgs]})}
 function openModal(prefill,source='new'){
-  modalEditSession++;activeModalSource=source;activeModalDraftKey=modalDraftKey(source);
+  modalEditSession++;if(source==='quick')touchDraftRevision(quickDraftKey());activeModalSource=source;activeModalDraftKey=modalDraftKey(source);
   const saveBtn=document.getElementById('btnSave');saveBtn.textContent='保存';saveBtn.disabled=false;
   const empty={text:'',tags:currentTag?currentTag:'',recorded_on:'',imgs:[]};
   const draft=chooseModalDraft(readDraft(activeModalDraftKey,null),prefill,empty);
@@ -910,14 +921,14 @@ async function handleModalImages(e){const input=e.target,session=modalEditSessio
 imgFileInput.addEventListener('change',handleModalImages);
 document.getElementById('btnSave').addEventListener('click',async()=>{
   const text=noteTextEl.value.trim();if(!text&&pendingImgs.length===0)return;
-  const session=modalEditSession,draftKey=activeModalDraftKey,source=activeModalSource,tags=parseTags(document.getElementById('noteTags').value),recorded_on=noteRecordedOn.value||null,imgs=[...pendingImgs];
+  const session=modalEditSession,draftKey=activeModalDraftKey,source=activeModalSource,draftRevision=getDraftRevision(draftKey),quickKey=quickDraftKey(),quickRevision=source==='quick'?getDraftRevision(quickKey):null,tags=parseTags(document.getElementById('noteTags').value),recorded_on=noteRecordedOn.value||null,imgs=[...pendingImgs];
   const saveBtn=document.getElementById('btnSave');saveBtn.textContent='保存中...';saveBtn.disabled=true;
   const {data,error}=await sb.from('notes').insert({text,tags,imgs,recorded_on}).select();
   const stillCurrent=()=>isUploadSessionCurrent(session,modalEditSession,draftKey,activeModalDraftKey,modalMask.classList.contains('show'));
   if(error){showToast('保存失败');if(stillCurrent()){saveBtn.textContent='保存';saveBtn.disabled=false}return}
   const r=data[0];
   notes.unshift({id:r.id,text:r.text,tags:r.tags||[],imgs:r.imgs||[],recorded_on:r.recorded_on||recorded_on,created_at:r.created_at,updated_at:r.updated_at,time:dbTimeToLocal(r.created_at)});
-  clearDraft(draftKey);if(source==='quick')clearDraft(quickDraftKey());
+  clearDraftIfRevision(draftKey,draftRevision);if(source==='quick')clearDraftIfRevision(quickKey,quickRevision);
   renderTree();renderHeatmap();render();if(stillCurrent()){saveBtn.textContent='保存';saveBtn.disabled=false;pendingImgs=[];closeModal()}else showToast('笔记已保存');
 });
 document.querySelectorAll('.modal-toolbar .md-btn').forEach(btn=>btn.addEventListener('click',()=>applyMarkdown(btn.dataset.md,noteTextEl)));

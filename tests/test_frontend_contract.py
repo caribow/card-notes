@@ -69,6 +69,10 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("newImgs=[...detailPendingImgs]", HTML)
         self.assertIn(".eq('id',noteId).eq('updated_at',n.updated_at).select()", HTML)
         self.assertIn("if(session===detailEditSession&&currentDetailId===noteId", HTML)
+        self.assertIn("let detailSaveInFlight=false", HTML)
+        self.assertIn("if(detailSaveInFlight){showToast('正在保存，请稍候');return}", HTML)
+        self.assertIn("setDetailSaving(true)", HTML)
+        self.assertIn("setDetailSaving(false)", HTML)
         self.assertIn("其他设备", HTML)
 
     def test_mobile_zoom_dependency_and_engineering_labels_are_cleaned_up(self):
@@ -131,6 +135,11 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("removeStoragePaths(paths", modal_upload.group(0))
         self.assertRegex(HTML, r"function closeModal\(\)\{modalEditSession\+\+")
         self.assertRegex(HTML, r"function closeDetail\(\)\{detailEditSession\+\+")
+        self.assertIn("clearDraftIfRevision(draftKey,draftRevision)", HTML)
+        self.assertIn("clearDraftIfRevision(quickKey,quickRevision)", HTML)
+        self.assertIn("touchDraftRevision(quickDraftKey())", HTML)
+        self.assertNotIn("clearDraftIfUnchanged", HTML)
+        self.assertNotIn("clearDraft(draftKey);if(source==='quick')", HTML)
 
     def test_mention_selection_persists_and_uses_stable_note_id(self):
         mention = re.search(r"function selectMention\(idx\)\{[^\n]+", HTML)
