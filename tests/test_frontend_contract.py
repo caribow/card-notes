@@ -54,6 +54,11 @@ class FrontendContractTests(unittest.TestCase):
         self.assertLess(markup.index('modalEditorOptions'), markup.index('detail-compose-toolbar'))
         for element_id in ('modalTagTool', 'imgAddBtn', 'modalDateTool', 'btnSave'):
             self.assertIn(f'id="{element_id}"', markup)
+        for class_name in ('detail-editor-options', 'detail-option-input', 'detail-attachment-count', 'detail-toolbar-spacer'):
+            self.assertIn(class_name, markup)
+        for wrong_class in ('detail-compose-options', 'detail-tags-input', 'detail-tool-badge', 'detail-tool-spacer'):
+            self.assertNotIn(wrong_class, markup)
+        self.assertRegex(markup, r'detail-toolbar-spacer[\s\S]{0,200}<button class="detail-submit" id="btnSave"')
         for old_class in ('format-panel', 'date-field', 'modal-tag-input', 'img-add-btn', 'modal-foot'):
             self.assertNotIn(old_class, markup)
         self.assertNotIn('id="btnCancel"', markup)

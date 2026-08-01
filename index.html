@@ -505,13 +505,13 @@ input,textarea{font-family:inherit;outline:none;border:none}
       <textarea class="modal-textarea" id="noteText" placeholder="记录一个想法..."></textarea>
       <input type="file" id="imgFileInput" accept="image/*" multiple style="display:none">
       <div class="img-thumbs modal-compose-thumbs" id="imgThumbs"></div>
-      <div class="detail-compose-options" id="modalEditorOptions" hidden>
-        <label class="detail-editor-option" id="modalTagPanel" hidden><span>标签</span><input type="text" class="detail-tags-input" id="noteTags" placeholder="空格分隔多个标签"></label>
-        <label class="detail-editor-option" id="modalDatePanel" hidden><span>日期</span><input type="date" id="noteRecordedOn"><small>留空则使用创建日期</small></label>
+      <div class="detail-editor-options" id="modalEditorOptions" hidden>
+        <label class="detail-editor-option" id="modalTagPanel" hidden><span class="detail-option-prefix">#</span><input type="text" class="detail-option-input" id="noteTags" placeholder="空格分隔标签，/ 表示层级"></label>
+        <label class="detail-editor-option" id="modalDatePanel" hidden><span class="detail-option-prefix">◷</span><input type="date" class="detail-option-input" id="noteRecordedOn" title="留空则使用创建日期"></label>
       </div>
       <div class="detail-compose-toolbar">
         <button class="detail-compose-tool" id="modalTagTool" title="标签" aria-label="标签"><span class="detail-hash-icon">#</span></button>
-        <button class="detail-compose-tool" id="imgAddBtn" title="添加图片" aria-label="添加图片"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m4 17 5-5 4 4 2-2 5 4"/></svg><span class="detail-tool-badge" id="modalAttachmentCount">0</span></button>
+        <button class="detail-compose-tool" id="imgAddBtn" title="添加图片" aria-label="添加图片"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m4 17 5-5 4 4 2-2 5 4"/></svg><span class="detail-attachment-count" id="modalAttachmentCount"></span></button>
         <button class="detail-compose-tool" id="modalDateTool" title="记录日期" aria-label="记录日期"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></button>
         <span class="detail-tool-divider"></span>
         <button class="detail-compose-tool detail-aa-tool" data-md="bold" title="粗体" aria-label="粗体">Aa</button>
@@ -519,7 +519,7 @@ input,textarea{font-family:inherit;outline:none;border:none}
         <button class="detail-compose-tool detail-numbered-tool" data-md="numbered" title="有序列表" aria-label="有序列表">1.</button>
         <span class="detail-tool-divider"></span>
         <button class="detail-compose-tool detail-at-tool" data-md="bilink" title="关联笔记" aria-label="关联笔记">@</button>
-        <span class="detail-tool-spacer"></span>
+        <span class="detail-toolbar-spacer"></span>
         <button class="detail-submit" id="btnSave" title="保存" aria-label="保存"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 14-7-4 14-3-6-7-1Z"/><path d="m12 13 7-8"/></svg></button>
       </div>
     </div>
