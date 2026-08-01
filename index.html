@@ -366,6 +366,32 @@ input,textarea{font-family:inherit;outline:none;border:none}
 .card:nth-child(4){animation-delay:.12s}
 .card:nth-child(5){animation-delay:.16s}
 
+/* ============ LOGIN ============ */
+.login-mask{position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s}
+.login-mask.show{opacity:1;pointer-events:auto}
+.login-box{width:90%;max-width:340px;text-align:center}
+.login-logo{font-family:var(--mono);font-size:13px;color:var(--text-3);letter-spacing:2px;text-transform:uppercase;margin-bottom:32px}
+.login-logo .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:6px;vertical-align:middle}
+.login-title{font-size:18px;color:var(--text);font-weight:600;margin-bottom:24px}
+.login-input{
+  width:100%;background:var(--bg-soft);border:1px solid var(--border);border-radius:8px;
+  padding:12px 14px;font-size:14px;color:var(--text);margin-bottom:12px;transition:border-color .2s;
+}
+.login-input:focus{border-color:var(--green);background:var(--bg)}
+.login-input::placeholder{color:var(--text-3)}
+.login-btn{
+  width:100%;background:var(--green);color:#fff;font-size:14px;padding:12px;border-radius:8px;
+  transition:opacity .15s,transform .15s;box-shadow:0 2px 12px var(--green-shadow);font-weight:500;
+}
+.login-btn:hover{opacity:.9;transform:translateY(-1px)}
+.login-btn:disabled{opacity:.5;cursor:default;transform:none}
+.login-err{font-size:12.5px;color:var(--red);margin-top:10px;min-height:18px;display:none}
+.login-err.show{display:block}
+
+/* ---- App hidden until authed ---- */
+.app{display:none}
+.app.authed{display:flex}
+
 /* ============ RESPONSIVE ============ */
 @media(max-width:768px){
   :root{--side-w:260px;--topbar-h:46px}
@@ -389,6 +415,17 @@ input,textarea{font-family:inherit;outline:none;border:none}
 </style>
 </head>
 <body>
+<!-- ===== LOGIN ===== -->
+<div class="login-mask" id="loginMask">
+  <div class="login-box">
+    <div class="login-logo"><span class="dot"></span>CARD NOTES</div>
+    <div class="login-title">登录</div>
+    <input type="email" class="login-input" id="loginEmail" placeholder="邮箱" autocomplete="email">
+    <input type="password" class="login-input" id="loginPass" placeholder="密码" autocomplete="current-password">
+    <button class="login-btn" id="loginBtn">登录</button>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+</div>
 <div class="app">
 
   <!-- ===== SIDEBAR ===== -->
@@ -412,6 +449,9 @@ input,textarea{font-family:inherit;outline:none;border:none}
         <button class="theme-toggle" id="themeToggle" aria-label="切换主题">
           <svg class="icon-sun" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
           <svg class="icon-moon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        </button>
+        <button class="theme-toggle" id="logoutBtn" aria-label="退出登录" title="退出登录">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
         </button>
       </div>
       <span class="ver" style="color:var(--green)">●</span>
@@ -816,11 +856,41 @@ document.getElementById('feed').addEventListener('click',function(e){
   const card=e.target.closest('.card');if(card&&card.dataset.id)openDetail(parseInt(card.dataset.id));
 });
 
+/* ============ AUTH ============ */
+const loginMask=document.getElementById('loginMask'),loginBtn=document.getElementById('loginBtn'),loginEmail=document.getElementById('loginEmail'),loginPass=document.getElementById('loginPass'),loginErr=document.getElementById('loginErr');
+
+async function initAuth(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(session){showApp()}else{showLogin()}
+}
+
+function showLogin(){loginMask.classList.add('show');loginEmail.focus()}
+function showApp(){
+  loginMask.classList.remove('show');
+  document.querySelector('.app').classList.add('authed');
+  document.getElementById('feed').innerHTML='<div class="empty"><p style="animation:pulse 1.5s ease-in-out infinite">加载中...</p></div>';
+  loadNotes();
+}
+
+async function doLogin(){
+  const email=loginEmail.value.trim(),pass=loginPass.value;
+  if(!email||!pass){loginErr.textContent='请输入邮箱和密码';loginErr.classList.add('show');return}
+  loginErr.classList.remove('show');loginBtn.textContent='登录中...';loginBtn.disabled=true;
+  const {error}=await sb.auth.signInWithPassword({email,password:pass});
+  if(error){loginErr.textContent='邮箱或密码错误';loginErr.classList.add('show');loginBtn.textContent='登录';loginBtn.disabled=false;return}
+  loginBtn.textContent='登录';loginBtn.disabled=false;
+  showApp();
+}
+
+loginBtn.addEventListener('click',doLogin);
+loginPass.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+loginEmail.addEventListener('keydown',e=>{if(e.key==='Enter')loginPass.focus()});
+document.getElementById('logoutBtn').addEventListener('click',async()=>{await sb.auth.signOut();document.querySelector('.app').classList.remove('authed');notes=[];loginEmail.value='';loginPass.value='';showLogin()});
+
 /* ============ INIT ============ */
 if(localStorage.getItem('card-notes-sidebar')==='collapsed')document.querySelector('.app').classList.add('sidebar-collapsed');
 window.addEventListener('resize',()=>{if(window.innerWidth>768){document.getElementById('sidebar').classList.remove('show');document.getElementById('overlay').classList.remove('show')}});
-document.getElementById('feed').innerHTML='<div class="empty"><p style="animation:pulse 1.5s ease-in-out infinite">加载中...</p></div>';
-loadNotes();
+initAuth();
 </script>
 </body>
 </html>
