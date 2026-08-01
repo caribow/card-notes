@@ -327,12 +327,32 @@ input,textarea{font-family:inherit;outline:none;border:none}
 .detail-txt .bilink{color:var(--green);background:var(--green-light);padding:1px 5px;border-radius:3px;cursor:pointer;text-decoration:none;font-weight:500;border-bottom:1.5px solid var(--green)}
 .detail-txt .bilink:hover{background:var(--green);color:#fff}
 .detail-txt .bilink.broken{color:var(--text-3);background:var(--tag-bg);border-bottom:1px dashed var(--text-3);cursor:default}
-.detail-edit-area{width:100%;min-height:300px;font-size:15.5px;line-height:1.85;color:var(--text);background:transparent;border:none;outline:none;resize:none;padding:0;font-family:var(--sans)}
-.detail-format-panel{margin-top:12px}
-.detail-edit-images{margin-top:14px;padding-top:14px;border-top:1px solid var(--border-soft)}
-.detail-edit-tags{width:100%;font-family:var(--mono);font-size:12px;color:var(--text);background:transparent;border:none;border-top:1px solid var(--border-soft);padding:14px 0 0;margin-top:24px}
-.detail-edit-tags::placeholder{color:var(--text-3)}
-.detail-edit-tags:focus{outline:none}
+.detail-editor{padding-top:28px}
+.detail-editor-body{min-height:clamp(300px,48vh,420px)}
+.detail-edit-area{width:100%;min-height:clamp(260px,42vh,360px);font-size:15.5px;line-height:1.9;color:var(--text);background:transparent;border:none;outline:none;resize:none;padding:0;font-family:var(--sans)}
+.detail-edit-area::placeholder{color:var(--text-3)}
+.detail-format-panel{margin:8px 0 0;border:0;border-radius:0;background:transparent}
+.detail-format-panel summary{display:inline-flex;align-items:center;gap:5px;padding:4px 0;color:var(--text-3)}
+.detail-format-panel summary::after{float:none;margin-left:2px}
+.detail-format-panel .modal-toolbar{margin-top:4px;padding:5px 0;border-top:1px solid var(--border-soft)}
+.detail-format-panel .format-hints{padding:3px 0 0}
+.detail-editor-meta{display:grid;grid-template-columns:160px minmax(0,1fr);gap:24px;margin-top:22px;padding:12px 0;border-top:1px solid var(--border-soft);border-bottom:1px solid var(--border-soft)}
+.detail-meta-field{min-width:0;display:flex;align-items:center;gap:10px;color:var(--text-2)}
+.detail-meta-label{flex-shrink:0;font-family:var(--mono);font-size:11px;line-height:1;letter-spacing:.6px;color:var(--text-2)}
+.detail-meta-field:focus-within .detail-meta-label{color:var(--green)}
+.detail-date-input{width:128px;min-width:0;height:28px;padding:0;border:0;outline:0;background:transparent;color:var(--text-2);font-family:var(--mono);font-size:11.5px}
+.detail-edit-tags{min-width:0;flex:1;width:100%;padding:4px 0;border:0;outline:0;background:transparent;color:var(--text);font-family:var(--mono);font-size:12.5px}
+.detail-edit-tags::placeholder{color:var(--text-2);opacity:.82}
+.detail-attachments{margin-top:2px;border-bottom:1px solid var(--border-soft)}
+.detail-attachments>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;list-style:none;cursor:pointer;color:var(--text-2);font-size:12.5px;user-select:none}
+.detail-attachments>summary::-webkit-details-marker{display:none}
+.detail-attachments>summary::before{content:'＋';width:14px;color:var(--text-3);font-family:var(--mono)}
+.detail-attachments[open]>summary::before{content:'−'}
+.detail-attachments>summary .detail-attachment-label{flex:1}
+.detail-attachment-count{font-family:var(--mono);font-size:10.5px;color:var(--text-3)}
+.detail-attachments-body{padding:2px 0 14px}
+.detail-img-add-btn{display:inline-flex;align-items:center;padding:5px 0;border:0;background:transparent;color:var(--text-2);font-size:12px;font-family:var(--mono)}
+.detail-img-add-btn:hover{color:var(--green)}
 .detail-imgs{margin-top:20px}
 .detail-imgs-title{font-family:var(--mono);font-size:11px;color:var(--text-3);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px}
 .detail-imgs-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -411,6 +431,13 @@ input,textarea{font-family:inherit;outline:none;border:none}
   .card-menu-btn{opacity:.35}
   .topbar-tag{max-width:120px;overflow:hidden;text-overflow:ellipsis}
   .detail-inner{padding:20px 18px 80px}
+  .detail-editor{padding-top:24px}
+  .detail-editor-body{min-height:clamp(220px,38vh,300px)}
+  .detail-edit-area{min-height:clamp(190px,32vh,260px)}
+  .detail-editor-meta{grid-template-columns:1fr;gap:0;padding:6px 0}
+  .detail-meta-field{min-height:38px}
+  .detail-meta-field+.detail-meta-field{border-top:1px solid var(--border-soft)}
+  .detail-meta-label{width:38px}
   .format-panel .md-btn{min-width:30px;height:28px}
   .heatmap-grid{grid-template-columns:repeat(10,1fr)}
 }
@@ -827,7 +854,7 @@ async function openDetailEdit(id){
   draft=draft||{text:n.text,tags:n.tags.join(' '),recorded_on:n.recorded_on||'',imgs:[...n.imgs],base_updated_at:n.updated_at};
   detailOriginalImgs=[...n.imgs];
   detailPendingImgs=[...(draft.imgs||[])];
-  detailContent.innerHTML=`<div class="detail-inner"><textarea class="detail-edit-area" id="detailEditText" placeholder="编辑笔记...">${escapeHTML(draft.text)}</textarea><details class="format-panel detail-format-panel"><summary>Aa 格式</summary><div class="modal-toolbar"><button class="md-btn" data-md="bold"><b>B</b></button><button class="md-btn" data-md="italic"><i>I</i></button><button class="md-btn" data-md="code">&lt;/&gt;</button><button class="md-btn" data-md="h">H</button><button class="md-btn" data-md="quote">"</button><button class="md-btn" data-md="list">•</button><button class="md-btn" data-md="link">🔗</button><button class="md-btn" data-md="bilink">@</button></div><div class="format-hints"><span>@ 引用</span><span># 标签</span><span>图片</span></div></details><label class="date-field">记录日期（可选） <input type="date" id="detailEditRecordedOn" value="${escapeAttr(draft.recorded_on)}"><span>留空则使用创建日期</span></label><input type="text" class="detail-edit-tags" id="detailEditTags" value="${escapeAttr(draft.tags)}" placeholder="标签：工作/银河智学（/ 分隔层级，空格分隔多标签）"><div class="detail-edit-images"><button class="img-add-btn" id="detailImgAddBtn" type="button">添加图片</button><input type="file" id="detailImgFileInput" accept="image/*" multiple hidden><div class="img-thumbs" id="detailImgThumbs"></div></div></div>`;
+  detailContent.innerHTML=`<div class="detail-inner detail-editor"><section class="detail-editor-body"><textarea class="detail-edit-area" id="detailEditText" placeholder="编辑笔记...">${escapeHTML(draft.text)}</textarea><details class="format-panel detail-format-panel"><summary>Aa 格式</summary><div class="modal-toolbar"><button class="md-btn" data-md="bold"><b>B</b></button><button class="md-btn" data-md="italic"><i>I</i></button><button class="md-btn" data-md="code">&lt;/&gt;</button><button class="md-btn" data-md="h">H</button><button class="md-btn" data-md="quote">"</button><button class="md-btn" data-md="list">•</button><button class="md-btn" data-md="link">🔗</button><button class="md-btn" data-md="bilink">@</button></div><div class="format-hints"><span>@ 引用</span><span># 标签</span></div></details></section><div class="detail-editor-meta" aria-label="笔记属性"><label class="detail-meta-field"><span class="detail-meta-label">日期</span><input type="date" class="detail-date-input" id="detailEditRecordedOn" value="${escapeAttr(draft.recorded_on)}" aria-label="记录日期" title="留空则使用创建日期"></label><label class="detail-meta-field"><span class="detail-meta-label">标签</span><input type="text" class="detail-edit-tags" id="detailEditTags" value="${escapeAttr(draft.tags)}" placeholder="空格分隔标签，/ 表示层级"></label></div><details class="detail-attachments"><summary><span class="detail-attachment-label">图片</span><span class="detail-attachment-count" id="detailAttachmentCount">${detailPendingImgs.length?detailPendingImgs.length+' 张':'可选'}</span></summary><div class="detail-attachments-body"><button class="detail-img-add-btn" id="detailImgAddBtn" type="button">添加图片</button><input type="file" id="detailImgFileInput" accept="image/*" multiple hidden><div class="img-thumbs" id="detailImgThumbs"></div></div></details></div>`;
   detailEditTextarea=document.getElementById('detailEditText');
   detailContent.querySelectorAll('.modal-toolbar .md-btn').forEach(btn=>btn.onclick=()=>applyMarkdown(btn.dataset.md,detailEditTextarea));
   ['detailEditText','detailEditTags','detailEditRecordedOn'].forEach(key=>document.getElementById(key).addEventListener('input',persistDetailDraft));
@@ -836,7 +863,7 @@ async function openDetailEdit(id){
   document.getElementById('detailImgThumbs').addEventListener('click',e=>{const btn=e.target.closest('[data-image-index]');if(btn)removeDetailImg(Number(btn.dataset.imageIndex))});
   renderDetailThumbs();setupMention(detailEditTextarea);detailMask.classList.add('show');detailContent.scrollTop=0;setTimeout(()=>detailEditTextarea.focus(),100);
 }
-async function renderDetailThumbs(){await renderImageList(document.getElementById('detailImgThumbs'),detailPendingImgs,true)}
+async function renderDetailThumbs(){const count=document.getElementById('detailAttachmentCount');if(count)count.textContent=detailPendingImgs.length?detailPendingImgs.length+' 张':'可选';await renderImageList(document.getElementById('detailImgThumbs'),detailPendingImgs,true)}
 async function removeDetailImg(i){const path=detailPendingImgs[i];if(!detailOriginalImgs.includes(path)&&!await removeStoragePaths([path]))return;detailPendingImgs.splice(i,1);persistDetailDraft();renderDetailThumbs()}
 async function handleDetailImages(e){const input=e.target,session=detailEditSession,noteId=currentDetailId,draftKey=editDraftKey(noteId),paths=await uploadImageFiles(Array.from(input.files));if(!isUploadSessionCurrent(session,detailEditSession,draftKey,editDraftKey(currentDetailId),detailMask.classList.contains('editing'))){await removeStoragePaths(paths,'已清理取消编辑后的图片');input.value='';return}detailPendingImgs.push(...paths);persistDetailDraft();renderDetailThumbs();input.value=''}
 function linkCardHTML(n){const p=stripBilinks(n.text).replace(/[#*`>]/g,'').replace(/\n/g,' ').slice(0,100);const tags=n.tags.map(t=>`<span class="link-card-tag">${escapeHTML(t)}</span>`).join('');return `<div class="link-card" data-note-id="${Number(n.id)}"><div class="link-card-ts">${fmtDate(noteDate(n)).sub} ${fmtTime(n.time)}</div><div class="link-card-txt">${escapeHTML(p)}</div><div class="link-card-tags">${tags}</div></div>`}

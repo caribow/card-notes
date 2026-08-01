@@ -108,6 +108,24 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("图片不能超过 10MB", HTML)
         self.assertIn("async function removeImg(i)", HTML)
 
+    def test_detail_editor_uses_content_first_visual_hierarchy(self):
+        editor = re.search(r'detailContent\.innerHTML=`(<div class="detail-inner detail-editor">.*?)`;', HTML)
+        self.assertIsNotNone(editor)
+        assert editor is not None
+        markup = editor.group(1)
+        self.assertLess(markup.index('detail-editor-body'), markup.index('detail-editor-meta'))
+        self.assertLess(markup.index('detail-editor-meta'), markup.index('detail-attachments'))
+        self.assertIn('<details class=\"detail-attachments\">', markup)
+        self.assertIn('class=\"detail-meta-label\">日期', markup)
+        self.assertIn('class=\"detail-meta-label\">标签', markup)
+        self.assertIn('id=\"detailAttachmentCount\"', markup)
+        self.assertNotIn('class=\"date-field\"', markup)
+        self.assertNotIn('class=\"detail-edit-images\"', markup)
+        self.assertIn('.detail-editor-meta{', HTML)
+        self.assertIn('.detail-date-input{', HTML)
+        self.assertIn('.detail-img-add-btn{', HTML)
+        self.assertRegex(HTML, r"async function renderDetailThumbs\(\)\{[^\n]*detailAttachmentCount")
+
     def test_detail_image_editor_supports_existing_delete_and_add(self):
         self.assertIn('id="detailImgAddBtn"', HTML)
         self.assertIn('id="detailImgFileInput"', HTML)
