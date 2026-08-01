@@ -585,6 +585,7 @@ function modalDraftKey(source){return source==='new'?newDraftKey():draftStorageK
 function editDraftKey(id){return draftStorageKey(EDIT_DRAFT_PREFIX+id)}
 function chooseModalDraft(existing,prefill,empty){return existing||{...empty,text:prefill??''}}
 function isEditDraftCurrent(draft,note){return !draft||draft.base_updated_at===note.updated_at}
+function isUploadSessionCurrent(capturedSession,currentSession,capturedKey,currentKey,visible){return capturedSession===currentSession&&capturedKey===currentKey&&visible}
 function migrateLegacyDrafts(){
   if(!currentUserId)return;
   [[QUICK_DRAFT_KEY,quickDraftKey()],[NEW_DRAFT_KEY,newDraftKey()]].forEach(([legacy,scoped])=>{if(localStorage.getItem(scoped)===null&&localStorage.getItem(legacy)!==null)localStorage.setItem(scoped,localStorage.getItem(legacy));localStorage.removeItem(legacy)});
@@ -604,21 +605,31 @@ function fmtDate(s){
 }
 function noteTitle(n){return n.text.split('\n')[0].replace(/[#*`>\-\[\]]/g,'').trim().slice(0,30)}
 function findNoteByTitle(t){return notes.find(n=>noteTitle(n)===t)}
-function getForwardLinks(n){return(n.text.match(/\[\[(.+?)\]\]/g)||[]).map(m=>m.slice(2,-2)).map(t=>({title:t,note:findNoteByTitle(t)})).filter(x=>x.note)}
-function getBacklinks(n){const t=noteTitle(n);if(!t)return[];return notes.filter(o=>o.id!==n.id&&o.text.includes('[['+t+']]'))}
+function noteLinkLabel(n){return noteTitle(n)||('笔记 '+n.id)}
+function noteLinkToken(n){return '#'+n.id+'|'+noteLinkLabel(n)}
+function parseBilink(value){const raw=String(value||''),stable=raw.match(/^#(\d+)\|(.*)$/s);if(stable){const id=Number(stable[1]),note=notes.find(n=>n.id===id);return{id,label:note?noteLinkLabel(note):(stable[2]||('笔记 '+id)),note}}const note=findNoteByTitle(raw);return{id:note?note.id:null,label:raw,note}}
+function stripBilinks(text){return String(text||'').replace(/\[\[(.+?)\]\]/g,(m,value)=>parseBilink(value).label)}
+function getForwardLinks(n){return(n.text.match(/\[\[(.+?)\]\]/g)||[]).map(m=>parseBilink(m.slice(2,-2))).map(ref=>({title:ref.label,note:ref.note})).filter(x=>x.note)}
+function getBacklinks(n){
+  const title=noteTitle(n),stable='[[#'+n.id+'|';
+  return notes.filter(o=>o.id!==n.id&&(
+    o.text.includes(stable)||(title&&o.text.includes('[['+title+']]'))
+  ));
+}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._timer);t._timer=setTimeout(()=>t.classList.remove('show'),2000)}
 
 /* ============ MARKDOWN ============ */
 function renderMD(text){
   const links=[];
-  text=String(text??'').replace(/\[([^\]]+?)\]\(([^\s)]+)\)/g,(m,label,url)=>{const safe=safeExternalUrl(url);if(!safe)return label;const token='\u0000LINK'+links.length+'\u0000';links.push(`<a href="${escapeAttr(safe)}" target="_blank" rel="noopener noreferrer">${escapeHTML(label)}</a>`);return token});
+  const bilinks=[];
+  text=String(text??'').replace(/\[\[(.+?)\]\]/g,(m,value)=>{const ref=parseBilink(value),token='\u0000BILINK'+bilinks.length+'\u0000';bilinks.push(ref.note?`<a class="bilink" data-note-id="${Number(ref.note.id)}" title="${escapeAttr(ref.note.text.slice(0,40))}">${escapeHTML(ref.label)}</a>`:`<span class="bilink broken">${escapeHTML(ref.label)}</span>`);return token});
+  text=text.replace(/\[([^\]]+?)\]\(([^\s)]+)\)/g,(m,label,url)=>{const safe=safeExternalUrl(url);if(!safe)return label;const token='\u0000LINK'+links.length+'\u0000';links.push(`<a href="${escapeAttr(safe)}" target="_blank" rel="noopener noreferrer">${escapeHTML(label)}</a>`);return token});
   let html=escapeHTML(text);
   html=html.replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/^# (.+)$/gm,'<h1>$1</h1>');
   html=html.replace(/^&gt; (.+)$/gm,'<blockquote>$1</blockquote>');
   html=html.replace(/^[\-\*] (.+)$/gm,'<li>$1</li>').replace(/(<li>.*<\/li>\n?)+/g,m=>'<ul>'+m+'</ul>');
   html=html.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/`(.+?)`/g,'<code>$1</code>');
-  html=html.replace(/\[\[(.+?)\]\]/g,(m,title)=>{const target=findNoteByTitle(title);return target?`<a class="bilink" data-note-id="${Number(target.id)}" title="${escapeAttr(target.text.slice(0,40))}">${escapeHTML(title)}</a>`:`<span class="bilink broken">${escapeHTML(title)}</span>`});
-  html=html.replace(/\n/g,'<br>').replace(/\u0000LINK(\d+)\u0000/g,(m,i)=>links[Number(i)]||'');
+  html=html.replace(/\n/g,'<br>').replace(/\u0000LINK(\d+)\u0000/g,(m,i)=>links[Number(i)]||'').replace(/\u0000BILINK(\d+)\u0000/g,(m,i)=>bilinks[Number(i)]||'');
   html=html.replace(/<br>(<(?:h[123]|blockquote|ul|li))/g,'$1').replace(/(<\/(?:h[123]|blockquote|ul|li)>)<br>/g,'$1');
   return html;
 }
@@ -738,7 +749,7 @@ async function saveQuickNote(){
 }
 function cardHTML(n){
   const tags=n.tags.map(t=>`<span class="card-tag ${currentTag&&(t===currentTag||t.startsWith(currentTag+'/'))?'match':''}" data-tag="${escapeAttr(t)}">${escapeHTML(t)}</span>`).join('');
-  const preview=n.text.replace(/\[\[(.+?)\]\]/g,'$1').replace(/[#*`>]/g,'').replace(/\n/g,' ');
+  const preview=stripBilinks(n.text).replace(/[#*`>]/g,'').replace(/\n/g,' ');
   const hasImgs=n.imgs&&n.imgs.length>0,isLong=n.text.length>80,fwd=getForwardLinks(n);
   const ind=[];
   if(hasImgs)ind.push(`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>${n.imgs.length}`);
@@ -766,6 +777,7 @@ const detailMask=document.getElementById('detailMask'),detailContent=document.ge
 let detailEditTextarea=null;
 let detailPendingImgs=[];
 let detailOriginalImgs=[];
+let detailEditSession=0;
 const imageUrlCache=new Map();
 function isLegacyImageUrl(value){return /^https?:\/\//i.test(String(value||''))}
 function isSignedUrlCacheFresh(entry,now=Date.now()){return !!entry&&entry.expiresAt>now+60000}
@@ -788,7 +800,7 @@ async function renderImageList(container,values,editable){
 async function renderDetailImages(n){const grid=document.getElementById('detailImgsGrid');if(!grid)return;await renderImageList(grid,n.imgs||[],false);grid.classList.toggle('single',(n.imgs||[]).length===1)}
 function persistDetailDraft(){if(!currentDetailId||!detailEditTextarea)return;const n=notes.find(x=>x.id===currentDetailId);if(!n)return;saveDraft(editDraftKey(currentDetailId),{text:detailEditTextarea.value,tags:document.getElementById('detailEditTags').value,recorded_on:document.getElementById('detailEditRecordedOn').value,imgs:[...detailPendingImgs],base_updated_at:n.updated_at})}
 function openDetail(id){
-  const n=notes.find(x=>x.id===id);if(!n)return;currentDetailId=id;detailMask.classList.remove('editing');detailMenu.classList.remove('show');
+  detailEditSession++;const n=notes.find(x=>x.id===id);if(!n)return;currentDetailId=id;detailMask.classList.remove('editing');detailMenu.classList.remove('show');
   document.getElementById('detailBackText').textContent='返回';
   const date=noteDate(n),fd=date.replace(/-/g,'.');
   document.getElementById('detailCrumb').textContent='#'+(n.tags[0]||'未分类')+' · '+fd+' '+fmtTime(n.time);
@@ -800,10 +812,11 @@ function openDetail(id){
   detailMask.classList.add('show');detailContent.scrollTop=0;renderDetailImages(n);
 }
 async function openDetailEdit(id){
-  const n=notes.find(x=>x.id===id);if(!n)return;currentDetailId=id;detailMask.classList.add('editing');detailMenu.classList.remove('show');
+  const session=++detailEditSession,n=notes.find(x=>x.id===id);if(!n)return;currentDetailId=id;detailMask.classList.add('editing');detailMenu.classList.remove('show');
   document.getElementById('detailBackText').textContent='取消';
   let draft=readDraft(editDraftKey(id),null);
-  if(!isEditDraftCurrent(draft,n)){const staleUploads=(draft.imgs||[]).filter(path=>!n.imgs.includes(path));if(!await removeStoragePaths(staleUploads,'旧草稿图片清理失败')){detailMask.classList.remove('editing');return}clearDraft(editDraftKey(id));draft=null;showToast('笔记已更新，已忽略旧编辑草稿')}
+  if(!isEditDraftCurrent(draft,n)){const staleUploads=(draft.imgs||[]).filter(path=>!n.imgs.includes(path));if(!await removeStoragePaths(staleUploads,'旧草稿图片清理失败')){if(session===detailEditSession)detailMask.classList.remove('editing');return}if(session!==detailEditSession)return;clearDraft(editDraftKey(id));draft=null;showToast('笔记已更新，已忽略旧编辑草稿')}
+  if(session!==detailEditSession||currentDetailId!==id)return;
   draft=draft||{text:n.text,tags:n.tags.join(' '),recorded_on:n.recorded_on||'',imgs:[...n.imgs],base_updated_at:n.updated_at};
   detailOriginalImgs=[...n.imgs];
   detailPendingImgs=[...(draft.imgs||[])];
@@ -818,20 +831,20 @@ async function openDetailEdit(id){
 }
 async function renderDetailThumbs(){await renderImageList(document.getElementById('detailImgThumbs'),detailPendingImgs,true)}
 async function removeDetailImg(i){const path=detailPendingImgs[i];if(!detailOriginalImgs.includes(path)&&!await removeStoragePaths([path]))return;detailPendingImgs.splice(i,1);persistDetailDraft();renderDetailThumbs()}
-async function handleDetailImages(e){const paths=await uploadImageFiles(Array.from(e.target.files));detailPendingImgs.push(...paths);persistDetailDraft();renderDetailThumbs();e.target.value=''}
-function linkCardHTML(n){const p=n.text.replace(/\[\[(.+?)\]\]/g,'$1').replace(/[#*`>]/g,'').replace(/\n/g,' ').slice(0,100);const tags=n.tags.map(t=>`<span class="link-card-tag">${escapeHTML(t)}</span>`).join('');return `<div class="link-card" data-note-id="${Number(n.id)}"><div class="link-card-ts">${fmtDate(noteDate(n)).sub} ${fmtTime(n.time)}</div><div class="link-card-txt">${escapeHTML(p)}</div><div class="link-card-tags">${tags}</div></div>`}
-function closeDetail(){detailMask.classList.remove('show');detailMask.classList.remove('editing');detailMenu.classList.remove('show')}
-async function cancelDetailEdit(){const n=notes.find(x=>x.id===currentDetailId);if(!n)return;const uploads=detailPendingImgs.filter(path=>!n.imgs.includes(path));if(!await removeStoragePaths(uploads))return;clearDraft(editDraftKey(currentDetailId));openDetail(currentDetailId)}
+async function handleDetailImages(e){const input=e.target,session=detailEditSession,noteId=currentDetailId,draftKey=editDraftKey(noteId),paths=await uploadImageFiles(Array.from(input.files));if(!isUploadSessionCurrent(session,detailEditSession,draftKey,editDraftKey(currentDetailId),detailMask.classList.contains('editing'))){await removeStoragePaths(paths,'已清理取消编辑后的图片');input.value='';return}detailPendingImgs.push(...paths);persistDetailDraft();renderDetailThumbs();input.value=''}
+function linkCardHTML(n){const p=stripBilinks(n.text).replace(/[#*`>]/g,'').replace(/\n/g,' ').slice(0,100);const tags=n.tags.map(t=>`<span class="link-card-tag">${escapeHTML(t)}</span>`).join('');return `<div class="link-card" data-note-id="${Number(n.id)}"><div class="link-card-ts">${fmtDate(noteDate(n)).sub} ${fmtTime(n.time)}</div><div class="link-card-txt">${escapeHTML(p)}</div><div class="link-card-tags">${tags}</div></div>`}
+function closeDetail(){detailEditSession++;detailMask.classList.remove('show');detailMask.classList.remove('editing');detailMenu.classList.remove('show')}
+async function cancelDetailEdit(){const session=++detailEditSession,noteId=currentDetailId,n=notes.find(x=>x.id===noteId);if(!n)return;const uploads=detailPendingImgs.filter(path=>!n.imgs.includes(path));if(!await removeStoragePaths(uploads))return;clearDraft(editDraftKey(noteId));if(session===detailEditSession&&currentDetailId===noteId)openDetail(noteId)}
 document.getElementById('detailBack').addEventListener('click',()=>{if(detailMask.classList.contains('editing'))cancelDetailEdit();else closeDetail()});
 document.getElementById('detailEditSave').addEventListener('click',async()=>{
-  const n=notes.find(x=>x.id===currentDetailId);if(!n)return;
-  const newText=detailEditTextarea.value.trim(),tags=parseTags(document.getElementById('detailEditTags').value),recorded_on=document.getElementById('detailEditRecordedOn').value||null,oldImgs=[...n.imgs];
-  const {data,error}=await sb.from('notes').update({text:newText,tags,imgs:[...detailPendingImgs],recorded_on}).eq('id',currentDetailId).eq('updated_at',n.updated_at).select();
+  const session=detailEditSession,noteId=currentDetailId,n=notes.find(x=>x.id===noteId);if(!n)return;
+  const newText=detailEditTextarea.value.trim(),tags=parseTags(document.getElementById('detailEditTags').value),recorded_on=document.getElementById('detailEditRecordedOn').value||null,oldImgs=[...n.imgs],newImgs=[...detailPendingImgs];
+  const {data,error}=await sb.from('notes').update({text:newText,tags,imgs:newImgs,recorded_on}).eq('id',noteId).eq('updated_at',n.updated_at).select();
   if(error){showToast('保存失败');return}
   if(!data||!data.length){showToast('笔记已在其他设备更新，请先复制当前内容再刷新');return}
-  const saved=data[0];n.text=newText;n.tags=tags;n.imgs=[...detailPendingImgs];n.recorded_on=recorded_on;n.updated_at=saved.updated_at;clearDraft(editDraftKey(currentDetailId));
-  const removed=oldImgs.filter(path=>!detailPendingImgs.includes(path)&&!isLegacyImageUrl(path));if(removed.length)await removeStoragePaths(removed,'笔记已保存，但旧图片清理失败');
-  renderTree();renderHeatmap();render();openDetail(currentDetailId);
+  const saved=data[0];n.text=newText;n.tags=tags;n.imgs=newImgs;n.recorded_on=recorded_on;n.updated_at=saved.updated_at;clearDraft(editDraftKey(noteId));
+  const removed=oldImgs.filter(path=>!newImgs.includes(path)&&!isLegacyImageUrl(path));if(removed.length)await removeStoragePaths(removed,'笔记已保存，但旧图片清理失败');
+  renderTree();renderHeatmap();render();if(session===detailEditSession&&currentDetailId===noteId&&detailMask.classList.contains('editing'))openDetail(noteId);else showToast('笔记已保存');
 });
 document.getElementById('detailMenuBtn').addEventListener('click',e=>{e.stopPropagation();detailMenu.classList.toggle('show')});
 document.addEventListener('click',e=>{if(!e.target.closest('#detailMenuBtn')&&!e.target.closest('#detailMenu'))detailMenu.classList.remove('show')});
@@ -839,7 +852,7 @@ detailMenu.addEventListener('click',e=>{const item=e.target.closest('.detail-men
 detailContent.addEventListener('click',e=>{const bilink=e.target.closest('.bilink[data-note-id]'),linkCard=e.target.closest('.link-card[data-note-id]'),tag=e.target.closest('.detail-tag[data-tag]');if(bilink){e.preventDefault();openDetail(Number(bilink.dataset.noteId));return}if(linkCard){openDetail(Number(linkCard.dataset.noteId));return}if(tag){closeDetail();selectTag(tag.dataset.tag)}});
 
 /* ============ REFERENCE AND CREATE ============ */
-function referenceAndCreate(id){const n=notes.find(x=>x.id===id);if(!n)return;openModal('[['+noteTitle(n)+']]\n\n','reference-'+id)}
+function referenceAndCreate(id){const n=notes.find(x=>x.id===id);if(!n)return;openModal('[['+noteLinkToken(n)+']]\n\n','reference-'+id)}
 
 /* ============ CONFIRM DELETE ============ */
 const confirmMask=document.getElementById('confirmMask');
@@ -848,11 +861,11 @@ document.getElementById('confirmMask').addEventListener('click',e=>{if(e.target=
 
 /* ============ @ MENTION ============ */
 let mentionState={active:false,textarea:null,results:[],selectedIndex:0,start:0};
-function checkMention(ta){const cur=ta.selectionStart,text=ta.value.substring(0,cur),m=text.match(/(?:^|\s)@([^\s]*)$/);if(!m){hideMentionDropdown();return}const q=m[1],atIdx=cur-q.length-1;mentionState.textarea=ta;mentionState.start=atIdx;const cands=notes.filter(n=>n.id!==currentDetailId);const filtered=cands.filter(n=>{const t=noteTitle(n).toLowerCase(),p=n.text.replace(/\[\[(.+?)\]\]/g,'$1').replace(/[#*`>]/g,'').replace(/\n/g,' ').toLowerCase();return t.includes(q.toLowerCase())||p.includes(q.toLowerCase())}).slice(0,6);if(filtered.length===0){hideMentionDropdown();return}mentionState.active=true;mentionState.results=filtered;mentionState.selectedIndex=0;showMentionDropdown(ta,filtered)}
-function showMentionDropdown(ta,results){const dd=document.getElementById('mentionDropdown');dd.innerHTML=results.map((n,i)=>{const t=noteTitle(n),p=n.text.replace(/\[\[(.+?)\]\]/g,'$1').replace(/[#*`>]/g,'').replace(/\n/g,' ').slice(0,40);return `<div class="mention-item ${i===0?'active':''}" data-index="${i}"><div class="mention-item-title"><span class="at">@</span>${escapeHTML(t)}</div><div class="mention-item-preview">${escapeHTML(p)}</div></div>`}).join('');const r=ta.getBoundingClientRect();dd.style.left=(r.left+12)+'px';dd.style.width=Math.min(r.width-24,360)+'px';if(r.top>260){dd.style.bottom=(window.innerHeight-r.top+6)+'px';dd.style.top='auto'}else{dd.style.top=(r.bottom+6)+'px';dd.style.bottom='auto'}dd.classList.add('show')}
+function checkMention(ta){const cur=ta.selectionStart,text=ta.value.substring(0,cur),m=text.match(/(?:^|\s)@([^\s]*)$/);if(!m){hideMentionDropdown();return}const q=m[1],atIdx=cur-q.length-1;mentionState.textarea=ta;mentionState.start=atIdx;const cands=notes.filter(n=>n.id!==currentDetailId);const filtered=cands.filter(n=>{const t=noteLinkLabel(n).toLowerCase(),p=stripBilinks(n.text).replace(/[#*`>]/g,'').replace(/\n/g,' ').toLowerCase();return t.includes(q.toLowerCase())||p.includes(q.toLowerCase())}).slice(0,6);if(filtered.length===0){hideMentionDropdown();return}mentionState.active=true;mentionState.results=filtered;mentionState.selectedIndex=0;showMentionDropdown(ta,filtered)}
+function showMentionDropdown(ta,results){const dd=document.getElementById('mentionDropdown');dd.innerHTML=results.map((n,i)=>{const t=noteLinkLabel(n),p=stripBilinks(n.text).replace(/[#*`>]/g,'').replace(/\n/g,' ').slice(0,40);return `<div class="mention-item ${i===0?'active':''}" data-index="${i}"><div class="mention-item-title"><span class="at">@</span>${escapeHTML(t)}</div><div class="mention-item-preview">${escapeHTML(p)}</div></div>`}).join('');const r=ta.getBoundingClientRect();dd.style.left=(r.left+12)+'px';dd.style.width=Math.min(r.width-24,360)+'px';if(r.top>260){dd.style.bottom=(window.innerHeight-r.top+6)+'px';dd.style.top='auto'}else{dd.style.top=(r.bottom+6)+'px';dd.style.bottom='auto'}dd.classList.add('show')}
 function hideMentionDropdown(){document.getElementById('mentionDropdown').classList.remove('show');mentionState.active=false}
 function updateMentionSelection(){document.getElementById('mentionDropdown').querySelectorAll('.mention-item').forEach((el,i)=>el.classList.toggle('active',i===mentionState.selectedIndex))}
-function selectMention(idx){if(!mentionState.active||idx<0||idx>=mentionState.results.length)return;const note=mentionState.results[idx],title=noteTitle(note),ta=mentionState.textarea,before=ta.value.substring(0,mentionState.start),after=ta.value.substring(ta.selectionStart);ta.value=before+'[['+title+']]'+after;const np=before.length+title.length+4;ta.selectionStart=ta.selectionEnd=np;ta.focus();hideMentionDropdown()}
+function selectMention(idx){if(!mentionState.active||idx<0||idx>=mentionState.results.length)return;const note=mentionState.results[idx],token=noteLinkToken(note),ta=mentionState.textarea,before=ta.value.substring(0,mentionState.start),after=ta.value.substring(ta.selectionStart);ta.value=before+'[['+token+']]'+after;const np=before.length+token.length+4;ta.selectionStart=ta.selectionEnd=np;ta.focus();ta.dispatchEvent(new Event('input',{bubbles:true}));hideMentionDropdown()}
 function setupMention(ta){ta.addEventListener('input',()=>setTimeout(()=>checkMention(ta),0));ta.addEventListener('keydown',e=>{if(!mentionState.active)return;if(e.key==='ArrowDown'){e.preventDefault();mentionState.selectedIndex=Math.min(mentionState.selectedIndex+1,mentionState.results.length-1);updateMentionSelection()}else if(e.key==='ArrowUp'){e.preventDefault();mentionState.selectedIndex=Math.max(mentionState.selectedIndex-1,0);updateMentionSelection()}else if(e.key==='Enter'||e.key==='Tab'){e.preventDefault();selectMention(mentionState.selectedIndex)}else if(e.key==='Escape'){e.preventDefault();hideMentionDropdown()}});ta.addEventListener('blur',()=>setTimeout(hideMentionDropdown,150))}
 document.getElementById('mentionDropdown').addEventListener('mousedown',e=>{e.preventDefault();const item=e.target.closest('.mention-item');if(item)selectMention(parseInt(item.dataset.index))});
 
@@ -861,15 +874,17 @@ const modalMask=document.getElementById('modalMask'),imgFileInput=document.getEl
 let pendingImgs=[];
 let activeModalSource='new';
 let activeModalDraftKey=null;
+let modalEditSession=0;
 function persistNewDraft(){if(!activeModalDraftKey)return;saveDraft(activeModalDraftKey,{text:noteTextEl.value,tags:document.getElementById('noteTags').value,recorded_on:noteRecordedOn.value,imgs:[...pendingImgs]})}
 function openModal(prefill,source='new'){
-  activeModalSource=source;activeModalDraftKey=modalDraftKey(source);
+  modalEditSession++;activeModalSource=source;activeModalDraftKey=modalDraftKey(source);
+  const saveBtn=document.getElementById('btnSave');saveBtn.textContent='保存';saveBtn.disabled=false;
   const empty={text:'',tags:currentTag?currentTag:'',recorded_on:'',imgs:[]};
   const draft=chooseModalDraft(readDraft(activeModalDraftKey,null),prefill,empty);
   noteTextEl.value=draft.text||'';document.getElementById('noteTags').value=draft.tags||'';noteRecordedOn.value=draft.recorded_on||'';pendingImgs=[...(draft.imgs||[])];persistNewDraft();renderThumbs();modalMask.classList.add('show');
   setTimeout(()=>{noteTextEl.focus();noteTextEl.setSelectionRange(noteTextEl.value.length,noteTextEl.value.length)},200);
 }
-function closeModal(){modalMask.classList.remove('show')}
+function closeModal(){modalEditSession++;modalMask.classList.remove('show')}
 async function renderThumbs(){await renderImageList(imgThumbs,pendingImgs,true)}
 async function removeImg(i){const path=pendingImgs[i];if(!await removeStoragePaths([path]))return;pendingImgs.splice(i,1);persistNewDraft();renderThumbs()}
 async function uploadImageFiles(files){
@@ -891,17 +906,19 @@ modalMask.addEventListener('click',e=>{if(e.target===modalMask)closeModal()});
 [noteTextEl,document.getElementById('noteTags'),noteRecordedOn].forEach(el=>el.addEventListener('input',persistNewDraft));
 document.getElementById('imgAddBtn').addEventListener('click',()=>imgFileInput.click());
 imgThumbs.addEventListener('click',e=>{const btn=e.target.closest('[data-image-index]');if(btn)removeImg(Number(btn.dataset.imageIndex))});
-imgFileInput.addEventListener('change',async()=>{pendingImgs.push(...await uploadImageFiles(Array.from(imgFileInput.files)));persistNewDraft();renderThumbs();imgFileInput.value=''});
+async function handleModalImages(e){const input=e.target,session=modalEditSession,draftKey=activeModalDraftKey,paths=await uploadImageFiles(Array.from(input.files));if(!isUploadSessionCurrent(session,modalEditSession,draftKey,activeModalDraftKey,modalMask.classList.contains('show'))){await removeStoragePaths(paths,'已清理关闭编辑器后的图片');input.value='';return}pendingImgs.push(...paths);persistNewDraft();renderThumbs();input.value=''}
+imgFileInput.addEventListener('change',handleModalImages);
 document.getElementById('btnSave').addEventListener('click',async()=>{
   const text=noteTextEl.value.trim();if(!text&&pendingImgs.length===0)return;
-  const tags=parseTags(document.getElementById('noteTags').value),recorded_on=noteRecordedOn.value||null;
+  const session=modalEditSession,draftKey=activeModalDraftKey,source=activeModalSource,tags=parseTags(document.getElementById('noteTags').value),recorded_on=noteRecordedOn.value||null,imgs=[...pendingImgs];
   const saveBtn=document.getElementById('btnSave');saveBtn.textContent='保存中...';saveBtn.disabled=true;
-  const {data,error}=await sb.from('notes').insert({text,tags,imgs:[...pendingImgs],recorded_on}).select();
-  if(error){showToast('保存失败');saveBtn.textContent='保存';saveBtn.disabled=false;return}
+  const {data,error}=await sb.from('notes').insert({text,tags,imgs,recorded_on}).select();
+  const stillCurrent=()=>isUploadSessionCurrent(session,modalEditSession,draftKey,activeModalDraftKey,modalMask.classList.contains('show'));
+  if(error){showToast('保存失败');if(stillCurrent()){saveBtn.textContent='保存';saveBtn.disabled=false}return}
   const r=data[0];
   notes.unshift({id:r.id,text:r.text,tags:r.tags||[],imgs:r.imgs||[],recorded_on:r.recorded_on||recorded_on,created_at:r.created_at,updated_at:r.updated_at,time:dbTimeToLocal(r.created_at)});
-  clearDraft(activeModalDraftKey);if(activeModalSource==='quick')clearDraft(quickDraftKey());pendingImgs=[];saveBtn.textContent='保存';saveBtn.disabled=false;
-  renderTree();renderHeatmap();render();closeModal();
+  clearDraft(draftKey);if(source==='quick')clearDraft(quickDraftKey());
+  renderTree();renderHeatmap();render();if(stillCurrent()){saveBtn.textContent='保存';saveBtn.disabled=false;pendingImgs=[];closeModal()}else showToast('笔记已保存');
 });
 document.querySelectorAll('.modal-toolbar .md-btn').forEach(btn=>btn.addEventListener('click',()=>applyMarkdown(btn.dataset.md,noteTextEl)));
 setupMention(noteTextEl);

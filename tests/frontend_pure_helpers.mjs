@@ -16,11 +16,17 @@ const context = {
   NEW_DRAFT_KEY: 'card-notes-draft-new',
   EDIT_DRAFT_PREFIX: 'card-notes-draft-edit-',
   MODAL_DRAFT_PREFIX: 'card-notes-draft-modal-',
+  notes: [
+    { id: 7, text: '重复标题\n第一条' },
+    { id: 8, text: '重复标题\n第二条' },
+    { id: 9, text: '' },
+  ],
 };
 vm.createContext(context);
 vm.runInContext([
   'draftStorageKey', 'quickDraftKey', 'newDraftKey', 'modalDraftKey',
-  'editDraftKey', 'chooseModalDraft', 'isEditDraftCurrent', 'isSignedUrlCacheFresh',
+  'editDraftKey', 'chooseModalDraft', 'isEditDraftCurrent', 'isUploadSessionCurrent',
+  'isSignedUrlCacheFresh', 'noteTitle', 'findNoteByTitle', 'noteLinkLabel', 'noteLinkToken', 'parseBilink',
 ].map(functionLine).join('\n'), context);
 
 const userAQuick = context.draftStorageKey(context.QUICK_DRAFT_KEY, 'user-a');
@@ -37,6 +43,15 @@ assert.equal(context.chooseModalDraft(null, 'new prefill', { text: '', imgs: [] 
 assert.equal(context.isEditDraftCurrent({ base_updated_at: 'v1' }, { updated_at: 'v1' }), true);
 assert.equal(context.isEditDraftCurrent({ base_updated_at: 'v1' }, { updated_at: 'v2' }), false);
 assert.equal(context.isEditDraftCurrent(null, { updated_at: 'v2' }), true);
+
+assert.equal(context.isUploadSessionCurrent(4, 4, 'draft-a', 'draft-a', true), true);
+assert.equal(context.isUploadSessionCurrent(4, 5, 'draft-a', 'draft-a', true), false);
+assert.equal(context.isUploadSessionCurrent(4, 4, 'draft-a', 'draft-b', true), false);
+assert.equal(context.isUploadSessionCurrent(4, 4, 'draft-a', 'draft-a', false), false);
+
+assert.equal(context.noteLinkToken(context.notes[1]), '#8|重复标题');
+assert.equal(context.parseBilink('#8|重复标题').note.id, 8, 'stable ID link must resolve the intended duplicate title');
+assert.equal(context.noteLinkToken(context.notes[2]), '#9|笔记 9', 'empty titles need a usable label');
 
 assert.equal(context.isSignedUrlCacheFresh({ expiresAt: 1_200_000 }, 1_000_000), true);
 assert.equal(context.isSignedUrlCacheFresh({ expiresAt: 1_050_000 }, 1_000_000), false, 'cache inside refresh window must be treated as expired');

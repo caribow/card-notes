@@ -10,7 +10,9 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn('data-action="reference-create"', HTML)
         self.assertIn('引用并新建', HTML)
         self.assertNotIn('复制双链', HTML)
-        self.assertIn("openModal('[['+noteTitle(n)+']]\\n\\n','reference-'+id)", HTML)
+        self.assertIn("openModal('[['+noteLinkToken(n)+']]\\n\\n','reference-'+id)", HTML)
+        self.assertIn("function noteLinkToken(n)", HTML)
+        self.assertIn("function parseBilink(value)", HTML)
         self.assertRegex(HTML, r"function openModal\([\s\S]*?setSelectionRange\(noteTextEl\.value\.length,noteTextEl\.value\.length\)")
 
     def test_detail_editor_has_one_cancel_and_embedded_format_bar(self):
@@ -27,8 +29,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn('recorded_on:n.recorded_on||null', HTML)
         self.assertIn('created_at:n.created_at', HTML)
         self.assertRegex(HTML, r"function noteDate\(n\).*?n\.recorded_on\|\|n\.time\|\|n\.created_at")
-        self.assertRegex(HTML, r"insert\(\{text,tags,imgs:\[\.\.\.pendingImgs\],recorded_on")
-        self.assertRegex(HTML, r"update\(\{text:newText,tags,imgs:\[\.\.\.detailPendingImgs\],recorded_on")
+        self.assertIn("insert({text,tags,imgs,recorded_on", HTML)
+        self.assertIn("update({text:newText,tags,imgs:newImgs,recorded_on}", HTML)
         self.assertIn("const recorded_on=null", HTML)
         self.assertIn("recorded_on:n.recorded_on||null", HTML)
 
@@ -55,15 +57,18 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("openModal(ta.value,'quick')", expand_handler)
         self.assertNotIn('clearDraft', expand_handler)
         self.assertGreaterEqual(HTML.count('clearDraft('), 3)
-        self.assertIn("openModal('[['+noteTitle(n)+']]\\n\\n','reference-'+id)", HTML)
+        self.assertIn("openModal('[['+noteLinkToken(n)+']]\\n\\n','reference-'+id)", HTML)
         self.assertIn("chooseModalDraft", HTML)
 
     def test_cancel_discards_edit_draft_and_updates_are_optimistic(self):
         self.assertIn("updated_at:n.updated_at", HTML)
         self.assertIn("base_updated_at:n.updated_at", HTML)
         self.assertIn("function cancelDetailEdit()", HTML)
-        self.assertIn("clearDraft(editDraftKey(currentDetailId))", HTML)
-        self.assertRegex(HTML, r"\.eq\('updated_at',n\.updated_at\)\.select\(\)")
+        self.assertIn("clearDraft(editDraftKey(noteId))", HTML)
+        self.assertIn("noteId=currentDetailId", HTML)
+        self.assertIn("newImgs=[...detailPendingImgs]", HTML)
+        self.assertIn(".eq('id',noteId).eq('updated_at',n.updated_at).select()", HTML)
+        self.assertIn("if(session===detailEditSession&&currentDetailId===noteId", HTML)
         self.assertIn("其他设备", HTML)
 
     def test_mobile_zoom_dependency_and_engineering_labels_are_cleaned_up(self):
@@ -107,6 +112,32 @@ class FrontendContractTests(unittest.TestCase):
         self.assertRegex(HTML, r"function removeDetailImg\(i\)")
         self.assertIn("imgs:[...n.imgs]", HTML)
         self.assertIn("detailPendingImgs=[...(draft.imgs||[])]", HTML)
+
+    def test_async_uploads_are_bound_to_the_originating_editor_session(self):
+        self.assertIn("let detailEditSession=0", HTML)
+        self.assertIn("let modalEditSession=0", HTML)
+        self.assertIn("function isUploadSessionCurrent", HTML)
+        detail_upload = re.search(r"async function handleDetailImages\(e\)\{[^\n]+", HTML)
+        self.assertIsNotNone(detail_upload)
+        assert detail_upload is not None
+        self.assertIn("session=detailEditSession", detail_upload.group(0))
+        self.assertIn("draftKey=editDraftKey(noteId)", detail_upload.group(0))
+        self.assertIn("removeStoragePaths(paths", detail_upload.group(0))
+        modal_upload = re.search(r"async function handleModalImages\(e\)\{[^\n]+", HTML)
+        self.assertIsNotNone(modal_upload)
+        assert modal_upload is not None
+        self.assertIn("session=modalEditSession", modal_upload.group(0))
+        self.assertIn("draftKey=activeModalDraftKey", modal_upload.group(0))
+        self.assertIn("removeStoragePaths(paths", modal_upload.group(0))
+        self.assertRegex(HTML, r"function closeModal\(\)\{modalEditSession\+\+")
+        self.assertRegex(HTML, r"function closeDetail\(\)\{detailEditSession\+\+")
+
+    def test_mention_selection_persists_and_uses_stable_note_id(self):
+        mention = re.search(r"function selectMention\(idx\)\{[^\n]+", HTML)
+        self.assertIsNotNone(mention)
+        assert mention is not None
+        self.assertIn("noteLinkToken(note)", mention.group(0))
+        self.assertIn("dispatchEvent(new Event('input'", mention.group(0))
 
 
 if __name__ == "__main__":
