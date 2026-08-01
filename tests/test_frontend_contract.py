@@ -36,15 +36,29 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("const recorded_on=null", HTML)
         self.assertIn("recorded_on:n.recorded_on||null", HTML)
 
-    def test_format_tools_are_collapsible_and_discoverable_in_editors(self):
-        self.assertEqual(HTML.count('<summary>Aa 格式</summary>'), 1)
-        for label in ('@ 引用', '# 标签', '图片'):
-            self.assertIn(label, HTML)
-        self.assertIn('class="detail-compose-toolbar"', HTML)
+    def test_format_tools_are_integrated_in_both_editors(self):
+        self.assertEqual(HTML.count('<summary>Aa 格式</summary>'), 0)
+        self.assertGreaterEqual(HTML.count('class="detail-compose-toolbar"'), 2)
         for tool in ('bold', 'list', 'numbered', 'bilink'):
-            self.assertIn(f'data-md="{tool}"', HTML)
+            self.assertGreaterEqual(HTML.count(f'data-md="{tool}"'), 2)
         self.assertNotIn('class="format-panel detail-format-panel"', HTML)
         self.assertNotRegex(HTML, r'<div class="detail-topbar">[\s\S]{0,1200}data-md=')
+
+    def test_new_note_uses_the_same_compose_surface(self):
+        modal = re.search(r'<div class="modal" id="modal">([\s\S]*?)</div>\s*</div>\s*<!-- ===== LIGHTBOX', HTML)
+        self.assertIsNotNone(modal)
+        assert modal is not None
+        markup = modal.group(1)
+        self.assertLess(markup.index('noteText'), markup.index('imgThumbs'))
+        self.assertLess(markup.index('imgThumbs'), markup.index('modalEditorOptions'))
+        self.assertLess(markup.index('modalEditorOptions'), markup.index('detail-compose-toolbar'))
+        for element_id in ('modalTagTool', 'imgAddBtn', 'modalDateTool', 'btnSave'):
+            self.assertIn(f'id="{element_id}"', markup)
+        for old_class in ('format-panel', 'date-field', 'modal-tag-input', 'img-add-btn', 'modal-foot'):
+            self.assertNotIn(old_class, markup)
+        self.assertNotIn('id="btnCancel"', markup)
+        self.assertNotIn('saveBtn.textContent', HTML)
+        self.assertIn('function toggleModalEditorOption', HTML)
 
     def test_numbered_list_tool_is_supported_end_to_end(self):
         self.assertIn("case'numbered':ins='1. '+(sel||'列表项')", HTML)
