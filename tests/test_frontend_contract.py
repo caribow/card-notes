@@ -109,6 +109,16 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("setupTagSuggest(document.getElementById('detailEditTags'))", HTML)
         self.assertIn('id="tagSuggestDropdown"', HTML)
 
+    def test_cognitive_map_is_wired(self):
+        self.assertIn('id="mapEntry"', HTML)
+        self.assertIn('id="mapMask"', HTML)
+        self.assertIn('async function openMap()', HTML)
+        self.assertIn('new UMAP(', HTML)
+        self.assertIn('d3.contours()', HTML)
+        self.assertIn('parseEmbedding', HTML)
+        self.assertIn('umap-js', HTML)
+        self.assertIn('d3@7', HTML)
+
     def test_mobile_fullscreen_and_topbar_brand(self):
         self.assertIn('<span class="topbar-brand">闪念笔记</span>', HTML)
         self.assertIn(".modal{max-width:none;padding:0;transform:none}", HTML)
