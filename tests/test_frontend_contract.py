@@ -71,9 +71,9 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("html=html.replace(/^\\d+\\. (.+)$/gm", HTML)
 
     def test_drafts_survive_expansion_and_clear_only_after_success(self):
-        self.assertIn("const QUICK_DRAFT_KEY='card-notes-draft-quick'", HTML)
-        self.assertIn("const NEW_DRAFT_KEY='card-notes-draft-new'", HTML)
-        self.assertIn("const EDIT_DRAFT_PREFIX='card-notes-draft-edit-'", HTML)
+        self.assertIn("const QUICK_DRAFT_KEY='flashnote-draft-quick'", HTML)
+        self.assertIn("const NEW_DRAFT_KEY='flashnote-draft-new'", HTML)
+        self.assertIn("const EDIT_DRAFT_PREFIX='flashnote-draft-edit-'", HTML)
         self.assertIn("function draftStorageKey(base", HTML)
         self.assertIn("currentUserId", HTML)
         self.assertIn("migrateLegacyDrafts", HTML)

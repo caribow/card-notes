@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>卡片笔记</title>
+<title>闪念笔记 · FlashNote</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.8"></script>
 <style>
@@ -426,7 +426,7 @@ input,textarea{font-family:inherit;outline:none;border:none}
 <!-- ===== LOGIN ===== -->
 <div class="login-mask" id="loginMask">
   <div class="login-box">
-    <div class="login-logo"><span class="dot"></span>CARD NOTES</div>
+    <div class="login-logo"><span class="dot"></span>FLASHNOTE</div>
     <div class="login-title">登录</div>
     <input type="email" class="login-input" id="loginEmail" placeholder="邮箱" autocomplete="email">
     <input type="password" class="login-input" id="loginPass" placeholder="密码" autocomplete="current-password">
@@ -561,10 +561,10 @@ let notes = [];
 let currentTag = null;
 let currentDetailId = null;
 let currentUserId = null;
-const QUICK_DRAFT_KEY='card-notes-draft-quick';
-const NEW_DRAFT_KEY='card-notes-draft-new';
-const EDIT_DRAFT_PREFIX='card-notes-draft-edit-';
-const MODAL_DRAFT_PREFIX='card-notes-draft-modal-';
+const QUICK_DRAFT_KEY='flashnote-draft-quick';
+const NEW_DRAFT_KEY='flashnote-draft-new';
+const EDIT_DRAFT_PREFIX='flashnote-draft-edit-';
+const MODAL_DRAFT_PREFIX='flashnote-draft-modal-';
 
 function dbTimeToLocal(iso){const d=new Date(iso);return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)}
 function localTimeToDB(local){return local.replace(' ','T')+':00'}
@@ -956,7 +956,7 @@ setupMention(noteTextEl);
 function closeSidebarMobile(){if(window.innerWidth<=768){document.getElementById('sidebar').classList.remove('show');document.getElementById('overlay').classList.remove('show')}}
 document.getElementById('menuBtn').addEventListener('click',()=>{
   if(window.innerWidth<=768){document.getElementById('sidebar').classList.add('show');document.getElementById('overlay').classList.add('show')}
-  else{const app=document.querySelector('.app');app.classList.toggle('sidebar-collapsed');localStorage.setItem('card-notes-sidebar',app.classList.contains('sidebar-collapsed')?'collapsed':'expanded')}
+  else{const app=document.querySelector('.app');app.classList.toggle('sidebar-collapsed');localStorage.setItem('flashnote-sidebar',app.classList.contains('sidebar-collapsed')?'collapsed':'expanded')}
 });
 document.getElementById('overlay').addEventListener('click',closeSidebarMobile);
 
@@ -972,9 +972,9 @@ document.getElementById('searchInput').addEventListener('input',function(){const
 });
 
 /* ============ THEME ============ */
-const themeToggle=document.getElementById('themeToggle');const savedTheme=localStorage.getItem('card-notes-theme');
+const themeToggle=document.getElementById('themeToggle');const savedTheme=localStorage.getItem('flashnote-theme');
 if(savedTheme==='dark'||(!savedTheme&&window.matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.setAttribute('data-theme','dark');
-themeToggle.addEventListener('click',()=>{const isDark=document.documentElement.getAttribute('data-theme')==='dark';if(isDark){document.documentElement.removeAttribute('data-theme');localStorage.setItem('card-notes-theme','light')}else{document.documentElement.setAttribute('data-theme','dark');localStorage.setItem('card-notes-theme','dark')}});
+themeToggle.addEventListener('click',()=>{const isDark=document.documentElement.getAttribute('data-theme')==='dark';if(isDark){document.documentElement.removeAttribute('data-theme');localStorage.setItem('flashnote-theme','light')}else{document.documentElement.setAttribute('data-theme','dark');localStorage.setItem('flashnote-theme','dark')}});
 
 /* ============ FEED EVENTS ============ */
 document.getElementById('feed').addEventListener('click',function(e){
@@ -1016,7 +1016,7 @@ loginEmail.addEventListener('keydown',e=>{if(e.key==='Enter')loginPass.focus()})
 document.getElementById('logoutBtn').addEventListener('click',async()=>{await sb.auth.signOut();closeModal();closeDetail();imageUrlCache.clear();pendingImgs=[];detailPendingImgs=[];activeModalDraftKey=null;currentUserId=null;document.querySelector('.app').classList.remove('authed');notes=[];loginEmail.value='';loginPass.value='';showLogin()});
 
 /* ============ INIT ============ */
-if(localStorage.getItem('card-notes-sidebar')==='collapsed')document.querySelector('.app').classList.add('sidebar-collapsed');
+if(localStorage.getItem('flashnote-sidebar')==='collapsed')document.querySelector('.app').classList.add('sidebar-collapsed');
 window.addEventListener('resize',()=>{if(window.innerWidth>768){document.getElementById('sidebar').classList.remove('show');document.getElementById('overlay').classList.remove('show')}});
 initAuth();
 </script>
