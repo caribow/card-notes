@@ -41,12 +41,12 @@ input,textarea{font-family:inherit;outline:none;border:none}
 .app.sidebar-collapsed .sidebar{margin-left:calc(-1 * var(--side-w))}
 .side-search{margin:14px 16px 12px;position:relative;padding-bottom:12px;border-bottom:1px solid var(--border-soft)}
 .side-search input{
-  width:100%;background:var(--bg);border:1px solid var(--border);border-radius:7px;
-  padding:7px 10px 7px 30px;font-size:12.5px;color:var(--text);transition:border-color .2s;
+  width:100%;height:32px;background:var(--bg);border:1px solid var(--border);border-radius:7px;
+  padding:0 10px 0 30px;font-size:12.5px;color:var(--text);transition:border-color .2s;
 }
 .side-search input:focus{border-color:var(--green)}
 .side-search input::placeholder{color:var(--text-3)}
-.side-search svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text-3)}
+.side-search svg{position:absolute;left:9px;top:16px;transform:translateY(-50%);color:var(--text-3);pointer-events:none}
 
 /* ---- Heatmap ---- */
 .heatmap-section{padding:14px 16px 6px;border-bottom:1px solid var(--border-soft)}
@@ -105,6 +105,7 @@ input,textarea{font-family:inherit;outline:none;border:none}
 .menu-btn{display:flex;width:34px;height:34px;border-radius:7px;align-items:center;justify-content:center;color:var(--text-2)}
 .menu-btn:hover{background:var(--hover-bg)}
 .topbar-spacer{flex:1}
+.topbar-brand{font-family:var(--mono);font-size:11px;color:var(--text-3);letter-spacing:2px;flex-shrink:0;user-select:none}
 .topbar-tag{
   font-family:var(--mono);font-size:11px;color:var(--green);
   background:var(--green-light);padding:3px 8px 3px 10px;border-radius:4px;
@@ -183,6 +184,8 @@ input,textarea{font-family:inherit;outline:none;border:none}
   position:relative;cursor:pointer;
 }
 .card:hover{border-color:var(--green);box-shadow:0 2px 10px var(--green-shadow)}
+.card.pinned{border-color:var(--green)}
+.card.pinned .card-ts .dot{animation:pulse 2s ease-in-out infinite}
 .card-ts{font-family:var(--mono);font-size:11px;color:var(--text-3);letter-spacing:.5px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
 .card-ts .dot{width:5px;height:5px;border-radius:50%;background:var(--green);flex-shrink:0}
 .card-txt{font-size:14.5px;line-height:1.75;color:var(--text);letter-spacing:.1px;word-break:break-word}
@@ -400,11 +403,20 @@ input,textarea{font-family:inherit;outline:none;border:none}
   .sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);box-shadow:2px 0 20px rgba(0,0,0,.08)}
   .sidebar.show{transform:translateX(0)}
   .app.sidebar-collapsed .sidebar{margin-left:0}
-  .feed{padding:12px 14px 80px}
-  .card{padding:12px 14px 11px}
+  .feed{padding:0 0 80px;max-width:none}
+  .input-card{border-left:none;border-right:none;border-radius:0;margin-bottom:0}
+  .card{padding:12px 14px 11px;border-left:none;border-right:none;border-radius:0;margin-bottom:0;border-top:none;word-break:break-word;overflow-wrap:anywhere}
+  .card:hover{box-shadow:none}
+  .card.pinned{border-left:none;border-right:none}
+  .date-sep{margin:0 14px}
+  .detail-compose{border:none;border-radius:0}
+  .modal-mask{align-items:stretch;backdrop-filter:none;background:var(--bg)}
+  .modal{max-width:none;padding:0;transform:none}
+  .modal-head{padding:12px 16px 0;margin-bottom:10px}
+  .modal .modal-textarea{font-size:16px}
+  .detail-edit-area{font-size:16px}
   .card-txt{font-size:14px}
   .topbar{padding:0 14px;gap:8px}
-  .modal{padding:18px 18px 20px}
   .card-menu-btn{opacity:.35}
   .topbar-tag{max-width:120px;overflow:hidden;text-overflow:ellipsis}
   .detail-inner{padding:20px 18px 80px}
@@ -475,6 +487,7 @@ input,textarea{font-family:inherit;outline:none;border:none}
       </button>
       <span class="topbar-tag" id="topbarTag"></span>
       <div class="topbar-spacer"></div>
+      <span class="topbar-brand">闪念笔记</span>
     </div>
     <div class="content" id="content">
       <div class="feed" id="feed"></div>
@@ -485,8 +498,13 @@ input,textarea{font-family:inherit;outline:none;border:none}
 <!-- ===== MENTION DROPDOWN ===== -->
 <div class="mention-dropdown" id="mentionDropdown"></div>
 
+<!-- ===== TAG SUGGEST DROPDOWN ===== -->
+<div class="mention-dropdown" id="tagSuggestDropdown"></div>
+
 <!-- ===== CARD MENU POPUP ===== -->
+<!-- note menu items shared by card popup and detail menu; pinned state rendered by JS -->
 <div class="card-menu-pop" id="cardMenuPop">
+  <div class="card-menu-item" data-action="pin"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1z"/></svg><span class="pin-label">置顶</span></div>
   <div class="card-menu-item" data-action="edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>编辑</div>
   <div class="card-menu-item" data-action="reference-create"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>引用并新建</div>
   <div class="card-menu-item danger" data-action="delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>删除</div>
@@ -538,7 +556,9 @@ input,textarea{font-family:inherit;outline:none;border:none}
       <button class="detail-edit-save" id="detailEditSave">保存</button>
       <button class="detail-menu-btn" id="detailMenuBtn" title="更多操作"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg></button>
       <div class="detail-menu" id="detailMenu">
+        <div class="detail-menu-item" data-action="pin"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1z"/></svg><span class="pin-label">置顶</span></div>
         <div class="detail-menu-item" data-action="edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>编辑</div>
+        <div class="detail-menu-item" data-action="reference-create"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>引用并新建</div>
         <div class="detail-menu-item danger" data-action="delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>删除</div>
       </div>
     </div>
@@ -572,7 +592,7 @@ function localTimeToDB(local){return local.replace(' ','T')+':00'}
 async function loadNotes(){
   const {data,error}=await sb.from('notes').select('*').order('created_at',{ascending:false});
   if(error){showToast('加载失败: '+error.message);return}
-  notes=(data||[]).map(n=>({id:n.id,text:n.text,tags:n.tags||[],imgs:n.imgs||[],recorded_on:n.recorded_on||null,created_at:n.created_at,updated_at:n.updated_at,time:dbTimeToLocal(n.created_at)}));
+  notes=(data||[]).map(n=>({id:n.id,text:n.text,tags:n.tags||[],imgs:n.imgs||[],recorded_on:n.recorded_on||null,pinned_at:n.pinned_at||null,created_at:n.created_at,updated_at:n.updated_at,time:dbTimeToLocal(n.created_at)}));
   renderTree();renderHeatmap();updateTopbarTag();render();
 }
 
@@ -582,6 +602,7 @@ function escapeAttr(s){return escapeHTML(s)}
 function safeExternalUrl(url){try{const parsed=new URL(String(url),window.location.origin);return parsed.protocol==='http:'||parsed.protocol==='https:'?parsed.href:''}catch(e){return''}}
 function noteDate(n){return String(n.recorded_on||n.time||n.created_at).slice(0,10)}
 function noteSortKey(n){return noteDate(n)+' '+String(n.created_at||n.time||'')}
+function compareNotes(a,b){const ap=a.pinned_at?1:0,bp=b.pinned_at?1:0;if(ap!==bp)return bp-ap;if(ap)return String(b.pinned_at).localeCompare(String(a.pinned_at));return noteSortKey(b).localeCompare(noteSortKey(a))}
 let draftRevisionSeq=0;
 function nextDraftRevision(){draftRevisionSeq+=1;return Date.now().toString(36)+'-'+draftRevisionSeq.toString(36)+'-'+Math.random().toString(36).slice(2,8)}
 function saveDraft(key,value){try{const revision=nextDraftRevision(),stored={value,_draftRevision:revision};localStorage.setItem(key,JSON.stringify(stored));return revision}catch(e){showToast('本地草稿保存失败');return null}}
@@ -705,7 +726,7 @@ document.getElementById('tree').addEventListener('click',function(e){
 
 /* ============ RENDER FEED ============ */
 function getFiltered(){if(!currentTag)return notes;return notes.filter(n=>n.tags.some(t=>t===currentTag||t.startsWith(currentTag+'/')))}
-function render(){const f=getFiltered().slice().sort((a,b)=>noteSortKey(b).localeCompare(noteSortKey(a)));renderFeed(f)}
+function render(){const f=getFiltered().slice().sort(compareNotes);renderFeed(f)}
 function renderFeed(list){
   const el=document.getElementById('feed');
   let html=inputCardHTML();
@@ -755,7 +776,7 @@ async function saveQuickNote(){
   const {data,error}=await sb.from('notes').insert({text,tags,imgs:[],recorded_on}).select();
   if(error){showToast('保存失败');sendBtn.textContent='保存 ⏎';sendBtn.disabled=false;return}
   const r=data[0];
-  notes.unshift({id:r.id,text:r.text,tags:r.tags||[],imgs:r.imgs||[],recorded_on:r.recorded_on||recorded_on,created_at:r.created_at,updated_at:r.updated_at,time:dbTimeToLocal(r.created_at)});
+  notes.unshift({id:r.id,text:r.text,tags:r.tags||[],imgs:r.imgs||[],recorded_on:r.recorded_on||recorded_on,pinned_at:r.pinned_at||null,created_at:r.created_at,updated_at:r.updated_at,time:dbTimeToLocal(r.created_at)});
   clearDraft(quickDraftKey());
   ta.value='';ta.style.height='auto';sendBtn.textContent='保存 ⏎';sendBtn.disabled=false;sendBtn.classList.remove('active');
   renderTree();renderHeatmap();render();
@@ -768,15 +789,19 @@ function cardHTML(n){
   if(hasImgs)ind.push(`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>${n.imgs.length}`);
   if(fwd.length>0)ind.push(`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>${fwd.length}`);
   if(isLong)ind.push(`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg>`);
-  return `<div class="card" data-id="${Number(n.id)}"><button class="card-menu-btn" data-note-id="${Number(n.id)}" title="更多"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg></button><div class="card-ts"><span class="dot"></span>${fmtTime(n.time)}</div><div class="card-txt collapsed">${escapeHTML(preview)}</div>${ind.length?`<div class="card-indicators">${ind.map(i=>`<span class="card-ind">${i}</span>`).join('')}</div>`:''}<div class="card-tags">${tags}</div></div>`;
+  return `<div class="card${n.pinned_at?' pinned':''}" data-id="${Number(n.id)}"><button class="card-menu-btn" data-note-id="${Number(n.id)}" title="更多"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg></button><div class="card-ts"><span class="dot"></span>${fmtTime(n.time)}</div><div class="card-txt collapsed">${escapeHTML(preview)}</div>${ind.length?`<div class="card-indicators">${ind.map(i=>`<span class="card-ind">${i}</span>`).join('')}</div>`:''}<div class="card-tags">${tags}</div></div>`;
 }
 function emptyHTML(){return `<div class="empty"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg><p>这里还没有笔记</p></div>`}
 
+/* ============ PIN ============ */
+async function togglePin(id){const n=notes.find(x=>x.id===id);if(!n)return;const newVal=n.pinned_at?null:new Date().toISOString();const {error}=await sb.from('notes').update({pinned_at:newVal}).eq('id',id);if(error){showToast('操作失败');return}n.pinned_at=newVal;render();showToast(newVal?'已置顶':'已取消置顶')}
+
 /* ============ CARD MENU ============ */
 const cardMenuPop=document.getElementById('cardMenuPop');let cardMenuNoteId=null;
-function showCardMenu(btn,id){cardMenuNoteId=id;const r=btn.getBoundingClientRect();const pw=140;let l=r.right-pw;if(l<8)l=8;let t=r.bottom+4;if(t+120>window.innerHeight)t=r.top-124;cardMenuPop.style.left=l+'px';cardMenuPop.style.top=t+'px';cardMenuPop.classList.add('show')}
+function pinLabelHTML(container,id){const n=notes.find(x=>x.id===id);const lbl=container&&container.querySelector('.pin-label');if(lbl)lbl.textContent=n&&n.pinned_at?'取消置顶':'置顶'}
+function showCardMenu(btn,id){cardMenuNoteId=id;pinLabelHTML(cardMenuPop,id);const r=btn.getBoundingClientRect();const pw=140;let l=r.right-pw;if(l<8)l=8;let t=r.bottom+4;if(t+190>window.innerHeight)t=r.top-194;cardMenuPop.style.left=l+'px';cardMenuPop.style.top=t+'px';cardMenuPop.classList.add('show')}
 function hideCardMenu(){cardMenuPop.classList.remove('show');cardMenuNoteId=null}
-cardMenuPop.addEventListener('click',e=>{const item=e.target.closest('.card-menu-item');if(!item)return;const action=item.dataset.action,id=cardMenuNoteId;hideCardMenu();if(!id)return;if(action==='edit')openDetailEdit(id);if(action==='reference-create')referenceAndCreate(id);if(action==='delete')confirmDelete(id)});
+cardMenuPop.addEventListener('click',e=>{const item=e.target.closest('.card-menu-item');if(!item)return;const action=item.dataset.action,id=cardMenuNoteId;hideCardMenu();if(!id)return;if(action==='pin')togglePin(id);if(action==='edit')openDetailEdit(id);if(action==='reference-create')referenceAndCreate(id);if(action==='delete')confirmDelete(id)});
 document.addEventListener('click',e=>{if(!e.target.closest('#cardMenuPop')&&!e.target.closest('.card-menu-btn'))hideCardMenu()});
 
 /* ============ LIGHTBOX ============ */
@@ -838,6 +863,7 @@ async function openDetailEdit(id){
   detailPendingImgs=[...(draft.imgs||[])];
   detailContent.innerHTML=`<div class="detail-inner detail-editor"><div class="detail-compose"><textarea class="detail-edit-area" id="detailEditText" placeholder="编辑笔记...">${escapeHTML(draft.text)}</textarea><input type="file" id="detailImgFileInput" accept="image/*" multiple hidden><div class="img-thumbs detail-compose-thumbs" id="detailImgThumbs"></div><div class="detail-editor-options" id="detailEditorOptions" hidden><label class="detail-editor-option" id="detailTagOption" hidden><span class="detail-option-prefix">#</span><input type="text" class="detail-option-input" id="detailEditTags" value="${escapeAttr(draft.tags)}" placeholder="空格分隔标签，/ 表示层级"></label><label class="detail-editor-option" id="detailDateOption" hidden><span class="detail-option-prefix">◷</span><input type="date" class="detail-option-input" id="detailEditRecordedOn" value="${escapeAttr(draft.recorded_on)}" aria-label="记录日期" title="留空则使用创建日期"></label></div><div class="detail-compose-toolbar"><button class="detail-compose-tool" id="detailTagTool" type="button" title="标签" aria-label="标签">#</button><button class="detail-compose-tool" id="detailImgAddBtn" type="button" title="图片" aria-label="添加图片"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m5 17 4-4 3 3 3-4 4 5"/></svg><span class="detail-attachment-count" id="detailAttachmentCount"></span></button><button class="detail-compose-tool" id="detailDateTool" type="button" title="记录日期" aria-label="记录日期"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4m8-4v4M3 10h18"/></svg></button><span class="detail-tool-divider"></span><button class="detail-compose-tool" type="button" data-md="bold" title="粗体" aria-label="粗体">Aa</button><button class="detail-compose-tool" type="button" data-md="list" title="无序列表" aria-label="无序列表"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r=".8" fill="currentColor"/><circle cx="4.5" cy="12" r=".8" fill="currentColor"/><circle cx="4.5" cy="18" r=".8" fill="currentColor"/></svg></button><button class="detail-compose-tool" type="button" data-md="numbered" title="有序列表" aria-label="有序列表">1.</button><span class="detail-tool-divider"></span><button class="detail-compose-tool" type="button" data-md="bilink" title="关联笔记" aria-label="关联笔记">@</button><span class="detail-toolbar-spacer"></span><button class="detail-submit" id="detailEditorSubmit" type="button" title="保存" aria-label="保存"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m4 12 15-7-4.5 14-3-6-7.5-1Z"/><path d="m11.5 13 3-3"/></svg></button></div></div></div>`;
   detailEditTextarea=document.getElementById('detailEditText');
+  setupTagSuggest(document.getElementById('detailEditTags'));
   detailContent.querySelectorAll('.detail-compose-tool[data-md]').forEach(btn=>btn.onclick=()=>applyMarkdown(btn.dataset.md,detailEditTextarea));
   ['detailEditText','detailEditTags','detailEditRecordedOn'].forEach(key=>document.getElementById(key).addEventListener('input',persistDetailDraft));
   document.getElementById('detailTagTool').addEventListener('click',()=>toggleDetailEditorOption('detailTagOption','detailTagTool'));
@@ -869,13 +895,13 @@ document.getElementById('detailEditSave').addEventListener('click',async()=>{
   }catch(e){showToast('保存失败，请检查网络后重试')}
   finally{setDetailSaving(false)}
 });
-document.getElementById('detailMenuBtn').addEventListener('click',e=>{e.stopPropagation();detailMenu.classList.toggle('show')});
+document.getElementById('detailMenuBtn').addEventListener('click',e=>{e.stopPropagation();pinLabelHTML(detailMenu,currentDetailId);detailMenu.classList.toggle('show')});
 document.addEventListener('click',e=>{if(!e.target.closest('#detailMenuBtn')&&!e.target.closest('#detailMenu'))detailMenu.classList.remove('show')});
-detailMenu.addEventListener('click',e=>{const item=e.target.closest('.detail-menu-item');if(!item)return;const action=item.dataset.action;detailMenu.classList.remove('show');if(action==='edit')openDetailEdit(currentDetailId);if(action==='delete')confirmDelete(currentDetailId)});
+detailMenu.addEventListener('click',e=>{const item=e.target.closest('.detail-menu-item');if(!item)return;const action=item.dataset.action;detailMenu.classList.remove('show');if(action==='pin')togglePin(currentDetailId);if(action==='edit')openDetailEdit(currentDetailId);if(action==='reference-create')referenceAndCreate(currentDetailId);if(action==='delete')confirmDelete(currentDetailId)});
 detailContent.addEventListener('click',e=>{const bilink=e.target.closest('.bilink[data-note-id]'),linkCard=e.target.closest('.link-card[data-note-id]'),tag=e.target.closest('.detail-tag[data-tag]');if(bilink){e.preventDefault();openDetail(Number(bilink.dataset.noteId));return}if(linkCard){openDetail(Number(linkCard.dataset.noteId));return}if(tag){closeDetail();selectTag(tag.dataset.tag)}});
 
 /* ============ REFERENCE AND CREATE ============ */
-function referenceAndCreate(id){const n=notes.find(x=>x.id===id);if(!n)return;openModal('[['+noteLinkToken(n)+']]\n\n','reference-'+id)}
+function referenceAndCreate(id){const n=notes.find(x=>x.id===id);if(!n)return;closeDetail();openModal('[['+noteLinkToken(n)+']]\n\n','reference-'+id,{tags:n.tags.join(' ')})}
 
 /* ============ CONFIRM DELETE ============ */
 const confirmMask=document.getElementById('confirmMask');
@@ -884,13 +910,24 @@ document.getElementById('confirmMask').addEventListener('click',e=>{if(e.target=
 
 /* ============ @ MENTION ============ */
 let mentionState={active:false,textarea:null,results:[],selectedIndex:0,start:0};
-function checkMention(ta){const cur=ta.selectionStart,text=ta.value.substring(0,cur),m=text.match(/(?:^|\s)@([^\s]*)$/);if(!m){hideMentionDropdown();return}const q=m[1],atIdx=cur-q.length-1;mentionState.textarea=ta;mentionState.start=atIdx;const cands=notes.filter(n=>n.id!==currentDetailId);const filtered=cands.filter(n=>{const t=noteLinkLabel(n).toLowerCase(),p=stripBilinks(n.text).replace(/[#*`>]/g,'').replace(/\n/g,' ').toLowerCase();return t.includes(q.toLowerCase())||p.includes(q.toLowerCase())}).slice(0,6);if(filtered.length===0){hideMentionDropdown();return}mentionState.active=true;mentionState.results=filtered;mentionState.selectedIndex=0;showMentionDropdown(ta,filtered)}
+function checkMention(ta){const cur=ta.selectionStart,text=ta.value.substring(0,cur),m=text.match(/(?:^|\s)@([^\s]*)$/);if(!m){hideMentionDropdown();return}const q=m[1],atIdx=cur-q.length-1;mentionState.textarea=ta;mentionState.start=atIdx;const cands=notes.filter(n=>n.id!==currentDetailId).slice().sort(compareNotes);const filtered=cands.filter(n=>{const t=noteLinkLabel(n).toLowerCase(),p=stripBilinks(n.text).replace(/[#*`>]/g,'').replace(/\n/g,' ').toLowerCase();return t.includes(q.toLowerCase())||p.includes(q.toLowerCase())}).slice(0,8);if(filtered.length===0){hideMentionDropdown();return}mentionState.active=true;mentionState.results=filtered;mentionState.selectedIndex=0;showMentionDropdown(ta,filtered)}
 function showMentionDropdown(ta,results){const dd=document.getElementById('mentionDropdown');dd.innerHTML=results.map((n,i)=>{const t=noteLinkLabel(n),p=stripBilinks(n.text).replace(/[#*`>]/g,'').replace(/\n/g,' ').slice(0,40);return `<div class="mention-item ${i===0?'active':''}" data-index="${i}"><div class="mention-item-title"><span class="at">@</span>${escapeHTML(t)}</div><div class="mention-item-preview">${escapeHTML(p)}</div></div>`}).join('');const r=ta.getBoundingClientRect();dd.style.left=(r.left+12)+'px';dd.style.width=Math.min(r.width-24,360)+'px';if(r.top>260){dd.style.bottom=(window.innerHeight-r.top+6)+'px';dd.style.top='auto'}else{dd.style.top=(r.bottom+6)+'px';dd.style.bottom='auto'}dd.classList.add('show')}
 function hideMentionDropdown(){document.getElementById('mentionDropdown').classList.remove('show');mentionState.active=false}
 function updateMentionSelection(){document.getElementById('mentionDropdown').querySelectorAll('.mention-item').forEach((el,i)=>el.classList.toggle('active',i===mentionState.selectedIndex))}
 function selectMention(idx){if(!mentionState.active||idx<0||idx>=mentionState.results.length)return;const note=mentionState.results[idx],token=noteLinkToken(note),ta=mentionState.textarea,before=ta.value.substring(0,mentionState.start),after=ta.value.substring(ta.selectionStart);ta.value=before+'[['+token+']]'+after;const np=before.length+token.length+4;ta.selectionStart=ta.selectionEnd=np;ta.focus();ta.dispatchEvent(new Event('input',{bubbles:true}));hideMentionDropdown()}
 function setupMention(ta){ta.addEventListener('input',()=>setTimeout(()=>checkMention(ta),0));ta.addEventListener('keydown',e=>{if(!mentionState.active)return;if(e.key==='ArrowDown'){e.preventDefault();mentionState.selectedIndex=Math.min(mentionState.selectedIndex+1,mentionState.results.length-1);updateMentionSelection()}else if(e.key==='ArrowUp'){e.preventDefault();mentionState.selectedIndex=Math.max(mentionState.selectedIndex-1,0);updateMentionSelection()}else if(e.key==='Enter'||e.key==='Tab'){e.preventDefault();selectMention(mentionState.selectedIndex)}else if(e.key==='Escape'){e.preventDefault();hideMentionDropdown()}});ta.addEventListener('blur',()=>setTimeout(hideMentionDropdown,150))}
 document.getElementById('mentionDropdown').addEventListener('mousedown',e=>{e.preventDefault();const item=e.target.closest('.mention-item');if(item)selectMention(parseInt(item.dataset.index))});
+
+/* ============ TAG SUGGEST ============ */
+let tagSugState={active:false,input:null,results:[],selectedIndex:0,start:0};
+function allTags(){const s=new Set();notes.forEach(n=>(n.tags||[]).forEach(t=>s.add(t)));return[...s].sort()}
+function checkTagSuggest(inp){const cur=inp.selectionStart,text=inp.value.substring(0,cur),m=text.match(/(?:^|\s)#?([^\s#]*)$/);if(!m){hideTagSuggest();return}const q=m[1].toLowerCase();tagSugState.input=inp;tagSugState.start=cur-m[1].length;const existing=new Set(parseTags(inp.value).map(t=>t.toLowerCase()));const filtered=allTags().filter(t=>{const tl=t.toLowerCase();return tl.includes(q)&&tl!==q&&!existing.has(tl)}).slice(0,8);if(filtered.length===0){hideTagSuggest();return}tagSugState.active=true;tagSugState.results=filtered;tagSugState.selectedIndex=0;showTagSuggestDropdown(inp,filtered)}
+function showTagSuggestDropdown(inp,results){const dd=document.getElementById('tagSuggestDropdown');dd.innerHTML=results.map((t,i)=>`<div class="mention-item ${i===0?'active':''}" data-index="${i}"><div class="mention-item-title"><span class="at">#</span>${escapeHTML(t)}</div></div>`).join('');const r=inp.getBoundingClientRect();dd.style.left=r.left+'px';dd.style.width=Math.min(Math.max(r.width,180),320)+'px';if(r.top>260){dd.style.bottom=(window.innerHeight-r.top+6)+'px';dd.style.top='auto'}else{dd.style.top=(r.bottom+6)+'px';dd.style.bottom='auto'}dd.classList.add('show')}
+function hideTagSuggest(){document.getElementById('tagSuggestDropdown').classList.remove('show');tagSugState.active=false}
+function updateTagSuggestSelection(){document.getElementById('tagSuggestDropdown').querySelectorAll('.mention-item').forEach((el,i)=>el.classList.toggle('active',i===tagSugState.selectedIndex))}
+function selectTagSuggest(idx){if(!tagSugState.active||idx<0||idx>=tagSugState.results.length)return;const tag=tagSugState.results[idx],inp=tagSugState.input,before=inp.value.substring(0,tagSugState.start),after=inp.value.substring(inp.selectionStart),needSpace=after.length>0&&!/^\s/.test(after);inp.value=before+tag+(needSpace?' ':'')+after;const np=before.length+tag.length+(needSpace?1:0);inp.selectionStart=inp.selectionEnd=np;inp.focus();inp.dispatchEvent(new Event('input',{bubbles:true}));hideTagSuggest()}
+function setupTagSuggest(inp){inp.addEventListener('input',()=>setTimeout(()=>checkTagSuggest(inp),0));inp.addEventListener('keydown',e=>{if(!tagSugState.active)return;if(e.key==='ArrowDown'){e.preventDefault();tagSugState.selectedIndex=Math.min(tagSugState.selectedIndex+1,tagSugState.results.length-1);updateTagSuggestSelection()}else if(e.key==='ArrowUp'){e.preventDefault();tagSugState.selectedIndex=Math.max(tagSugState.selectedIndex-1,0);updateTagSuggestSelection()}else if(e.key==='Tab'){e.preventDefault();selectTagSuggest(tagSugState.selectedIndex)}else if(e.key==='Escape'){e.preventDefault();hideTagSuggest()}});inp.addEventListener('blur',()=>setTimeout(hideTagSuggest,150))}
+document.getElementById('tagSuggestDropdown').addEventListener('mousedown',e=>{e.preventDefault();const item=e.target.closest('.mention-item');if(item)selectTagSuggest(parseInt(item.dataset.index))});
 
 /* ============ MODAL ============ */
 const modalMask=document.getElementById('modalMask'),imgFileInput=document.getElementById('imgFileInput'),imgThumbs=document.getElementById('imgThumbs'),noteTextEl=document.getElementById('noteText'),noteRecordedOn=document.getElementById('noteRecordedOn');
@@ -904,10 +941,12 @@ function toggleModalEditorOption(panelId,buttonId){
   options.querySelectorAll('.detail-editor-option').forEach(el=>el.hidden=true);document.querySelectorAll('#modalTagTool,#modalDateTool').forEach(el=>el.classList.remove('active'));
   if(opening){options.hidden=false;panel.hidden=false;button.classList.add('active');setTimeout(()=>panel.querySelector('input')?.focus(),0)}else options.hidden=true;
 }
-function openModal(prefill,source='new'){
+function openModal(prefill,source='new',opts){
+  opts=opts||{};
   modalEditSession++;if(source==='quick')touchDraftRevision(quickDraftKey());activeModalSource=source;activeModalDraftKey=modalDraftKey(source);
   const saveBtn=document.getElementById('btnSave');saveBtn.disabled=false;
-  const empty={text:'',tags:currentTag?currentTag:'',recorded_on:'',imgs:[]};
+  const defaultTags=opts.tags!==undefined?opts.tags:(currentTag?currentTag:'');
+  const empty={text:'',tags:defaultTags,recorded_on:'',imgs:[]};
   const draft=chooseModalDraft(readDraft(activeModalDraftKey,null),prefill,empty);
   noteTextEl.value=draft.text||'';document.getElementById('noteTags').value=draft.tags||'';noteRecordedOn.value=draft.recorded_on||'';pendingImgs=[...(draft.imgs||[])];persistNewDraft();renderThumbs();modalMask.classList.add('show');
   setTimeout(()=>{noteTextEl.focus();noteTextEl.setSelectionRange(noteTextEl.value.length,noteTextEl.value.length)},200);
@@ -930,6 +969,12 @@ async function uploadImageFiles(files){
 }
 document.getElementById('modalClose').addEventListener('click',closeModal);
 modalMask.addEventListener('click',e=>{if(e.target===modalMask)closeModal()});
+// mobile: swallow background rubber-band/scroll drift on fullscreen layers
+if(window.matchMedia('(max-width:768px)').matches){
+  const blockBg=e=>{if(!e.target.closest('.modal,.detail-content,.mention-dropdown'))e.preventDefault()};
+  modalMask.addEventListener('touchmove',blockBg,{passive:false});
+  detailMask.addEventListener('touchmove',blockBg,{passive:false});
+}
 [noteTextEl,document.getElementById('noteTags'),noteRecordedOn].forEach(el=>el.addEventListener('input',persistNewDraft));
 document.getElementById('modalTagTool').addEventListener('click',()=>toggleModalEditorOption('modalTagPanel','modalTagTool'));
 document.getElementById('modalDateTool').addEventListener('click',()=>toggleModalEditorOption('modalDatePanel','modalDateTool'));
@@ -945,12 +990,13 @@ document.getElementById('btnSave').addEventListener('click',async()=>{
   const stillCurrent=()=>isUploadSessionCurrent(session,modalEditSession,draftKey,activeModalDraftKey,modalMask.classList.contains('show'));
   if(error){showToast('保存失败');if(stillCurrent())saveBtn.disabled=false;return}
   const r=data[0];
-  notes.unshift({id:r.id,text:r.text,tags:r.tags||[],imgs:r.imgs||[],recorded_on:r.recorded_on||recorded_on,created_at:r.created_at,updated_at:r.updated_at,time:dbTimeToLocal(r.created_at)});
+  notes.unshift({id:r.id,text:r.text,tags:r.tags||[],imgs:r.imgs||[],recorded_on:r.recorded_on||recorded_on,pinned_at:r.pinned_at||null,created_at:r.created_at,updated_at:r.updated_at,time:dbTimeToLocal(r.created_at)});
   clearDraftIfRevision(draftKey,draftRevision);if(source==='quick')clearDraftIfRevision(quickKey,quickRevision);
   renderTree();renderHeatmap();render();if(stillCurrent()){saveBtn.disabled=false;pendingImgs=[];closeModal()}else showToast('笔记已保存');
 });
 document.querySelectorAll('.modal-compose .detail-compose-tool[data-md]').forEach(btn=>btn.addEventListener('click',()=>applyMarkdown(btn.dataset.md,noteTextEl)));
 setupMention(noteTextEl);
+setupTagSuggest(document.getElementById('noteTags'));
 
 /* ============ SIDEBAR MOBILE ============ */
 function closeSidebarMobile(){if(window.innerWidth<=768){document.getElementById('sidebar').classList.remove('show');document.getElementById('overlay').classList.remove('show')}}
@@ -965,7 +1011,7 @@ document.getElementById('searchInput').addEventListener('input',function(){const
   // render without input card during search
   const el=document.getElementById('feed');let html='';
   if(f.length===0){el.innerHTML=inputCardHTML()+emptyHTML();bindInputCard();return}
-  const groups={};f.sort((a,b)=>noteSortKey(b).localeCompare(noteSortKey(a))).forEach(n=>{const k=noteDate(n);if(!groups[k])groups[k]=[];groups[k].push(n)});
+  const groups={};f.sort(compareNotes).forEach(n=>{const k=noteDate(n);if(!groups[k])groups[k]=[];groups[k].push(n)});
   html=inputCardHTML();
   Object.keys(groups).forEach(date=>{const info=fmtDate(date);html+=`<div class="date-sep${info.isToday?' today':''}">${info.sub}</div>`;groups[date].forEach(n=>html+=cardHTML(n))});
   el.innerHTML=html;bindInputCard();

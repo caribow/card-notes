@@ -10,7 +10,7 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn('data-action="reference-create"', HTML)
         self.assertIn('引用并新建', HTML)
         self.assertNotIn('复制双链', HTML)
-        self.assertIn("openModal('[['+noteLinkToken(n)+']]\\n\\n','reference-'+id)", HTML)
+        self.assertIn("openModal('[['+noteLinkToken(n)+']]\\n\\n','reference-'+id,{tags:n.tags.join(' ')})", HTML)
         self.assertIn("function noteLinkToken(n)", HTML)
         self.assertIn("function parseBilink(value)", HTML)
         self.assertRegex(HTML, r"function openModal\([\s\S]*?setSelectionRange\(noteTextEl\.value\.length,noteTextEl\.value\.length\)")
@@ -87,8 +87,33 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("openModal(ta.value,'quick')", expand_handler)
         self.assertNotIn('clearDraft', expand_handler)
         self.assertGreaterEqual(HTML.count('clearDraft('), 3)
-        self.assertIn("openModal('[['+noteLinkToken(n)+']]\\n\\n','reference-'+id)", HTML)
+        self.assertIn("openModal('[['+noteLinkToken(n)+']]\\n\\n','reference-'+id,{tags:n.tags.join(' ')})", HTML)
         self.assertIn("chooseModalDraft", HTML)
+
+    def test_pin_feature_is_wired_end_to_end(self):
+        self.assertIn("async function togglePin(id)", HTML)
+        self.assertIn("pinned_at:newVal", HTML)
+        self.assertGreaterEqual(HTML.count('data-action="pin"'), 2)
+        self.assertIn("function compareNotes(a,b)", HTML)
+        self.assertIn("n.pinned_at?' pinned':''", HTML)
+        self.assertIn("pinned_at:n.pinned_at||null", HTML)
+
+    def test_menus_are_consistent_between_card_and_detail(self):
+        self.assertGreaterEqual(HTML.count('data-action="reference-create"'), 2)
+        self.assertIn("if(action==='pin')togglePin(currentDetailId)", HTML)
+        self.assertIn("if(action==='reference-create')referenceAndCreate(currentDetailId)", HTML)
+
+    def test_tag_suggest_is_bound_to_all_tag_inputs(self):
+        self.assertIn("function setupTagSuggest(inp)", HTML)
+        self.assertIn("setupTagSuggest(document.getElementById('noteTags'))", HTML)
+        self.assertIn("setupTagSuggest(document.getElementById('detailEditTags'))", HTML)
+        self.assertIn('id="tagSuggestDropdown"', HTML)
+
+    def test_mobile_fullscreen_and_topbar_brand(self):
+        self.assertIn('<span class="topbar-brand">闪念笔记</span>', HTML)
+        self.assertIn(".feed{padding:0 0 80px;max-width:none}", HTML)
+        self.assertIn(".modal{max-width:none;padding:0;transform:none}", HTML)
+        self.assertIn("blockBg", HTML)
 
     def test_cancel_discards_edit_draft_and_updates_are_optimistic(self):
         self.assertIn("updated_at:n.updated_at", HTML)
