@@ -111,8 +111,8 @@ class FrontendContractTests(unittest.TestCase):
 
     def test_mobile_fullscreen_and_topbar_brand(self):
         self.assertIn('<span class="topbar-brand">闪念笔记</span>', HTML)
-        self.assertIn(".feed{padding:0 0 80px;max-width:none}", HTML)
         self.assertIn(".modal{max-width:none;padding:0;transform:none}", HTML)
+        self.assertIn(".detail-compose{border:none;border-radius:0}", HTML)
         self.assertIn("blockBg", HTML)
 
     def test_cancel_discards_edit_draft_and_updates_are_optimistic(self):
