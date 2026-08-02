@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 
 HTML = Path(__file__).parents[1].joinpath("index.html").read_text(encoding="utf-8")
+EDGE = Path(__file__).parents[1].joinpath("supabase/functions/embed-note/index.ts").read_text(encoding="utf-8")
 
 
 class FrontendContractTests(unittest.TestCase):
@@ -118,6 +119,50 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn('parseEmbedding', HTML)
         self.assertIn('umap-js', HTML)
         self.assertIn('d3@7', HTML)
+
+    def test_cognitive_map_filters_noise_and_uses_quality_fences(self):
+        self.assertIn('function isSubstantiveMapNote(note)', HTML)
+        self.assertIn("tags.includes('IFTTT')", HTML)
+        self.assertIn("tags.includes('Day One/Ifttt 自动化')", HTML)
+        self.assertIn('function findMeaningfulThemes(pts)', HTML)
+        self.assertIn('function sphericalKMeans(pts,k)', HTML)
+        self.assertIn('minThemeSize', HTML)
+        self.assertIn('cohesion>=THEME_MIN_COHESION', HTML)
+        self.assertIn('margin>=THEME_MIN_MARGIN', HTML)
+        self.assertIn('nameThemeFromContent', HTML)
+        self.assertNotIn('function detectPeaks(pts)', HTML)
+        self.assertNotIn("name=tt?tt[0].split('/').pop():'笔记'", HTML)
+
+    def test_cognitive_map_uses_real_chinese_word_segmentation(self):
+        self.assertIn("new Intl.Segmenter('zh-CN',{granularity:'word'})", HTML)
+        self.assertIn('part.isWordLike', HTML)
+        self.assertIn('CONCEPT_SINGLE_CHARS', HTML)
+        self.assertNotIn('for(let len=4;len>=2;len--)', HTML)
+        self.assertNotIn('seg.substr(i,len)', HTML)
+
+    def test_semantic_text_excludes_dayone_ai_reply_without_altering_note(self):
+        self.assertIn('function stripSemanticNoise(text)', HTML)
+        self.assertIn('stripSemanticNoise(stripBilinks(m.note.text||', HTML)
+        self.assertIn('function stripSemanticNoise(text: string)', EDGE)
+        self.assertIn('🐰月儿来信', EDGE)
+        self.assertIn('input: semanticText.slice(0, 8000)', EDGE)
+
+    def test_cognitive_map_renders_per_theme_fences_and_explains_them(self):
+        self.assertIn('function renderThemeFence(', HTML)
+        self.assertIn('themes.filter(theme=>theme.qualified)', HTML)
+        self.assertIn('id="mapThemePanel"', HTML)
+        self.assertIn('代表笔记', HTML)
+        self.assertIn('function showMapTheme(theme)', HTML)
+        self.assertIn('data-map-note-id', HTML)
+        self.assertNotIn('// 等高线（按密度）', HTML)
+
+    def test_cognitive_map_supports_pan_pinch_and_zoom_controls(self):
+        for element_id in ('mapZoomIn', 'mapZoomOut', 'mapZoomReset'):
+            self.assertIn(f'id="{element_id}"', HTML)
+        self.assertIn('d3.zoom().scaleExtent([0.6,8])', HTML)
+        self.assertIn("svg.call(mapZoomBehavior)", HTML)
+        self.assertIn('function resetMapZoom()', HTML)
+        self.assertIn('touch-action:none', HTML)
 
     def test_mobile_fullscreen_and_topbar_brand(self):
         self.assertIn('<span class="topbar-brand">闪念笔记</span>', HTML)
