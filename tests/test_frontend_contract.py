@@ -9,7 +9,7 @@ EDGE = Path(__file__).parents[1].joinpath("supabase/functions/embed-note/index.t
 class FrontendContractTests(unittest.TestCase):
     def test_reference_and_create_replaces_copy_link(self):
         self.assertIn('data-action="reference-create"', HTML)
-        self.assertIn('引用并新建', HTML)
+        self.assertIn('>引用</div>', HTML)
         self.assertNotIn('复制双链', HTML)
         self.assertIn("openModal('[['+noteLinkToken(n)+']]\\n\\n','reference-'+id,{tags:n.tags.join(' ')})", HTML)
         self.assertIn("function noteLinkToken(n)", HTML)
@@ -38,7 +38,7 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn('class="detail-menu-anchor"', HTML)
         self.assertRegex(
             HTML,
-            r'<div class="detail-menu-anchor">[\s\S]{0,500}id="detailMenuBtn"[\s\S]{0,500}id="detailMenu"',
+            r'<div class="detail-menu-anchor">[\s\S]{0,500}id="detailMenuBtn"',
         )
         self.assertIn('.detail-menu-anchor{position:relative;flex-shrink:0}', HTML)
 
@@ -143,15 +143,24 @@ class FrontendContractTests(unittest.TestCase):
     def test_pin_feature_is_wired_end_to_end(self):
         self.assertIn("async function togglePin(id)", HTML)
         self.assertIn("pinned_at:newVal", HTML)
-        self.assertGreaterEqual(HTML.count('data-action="pin"'), 2)
+        self.assertGreaterEqual(HTML.count('data-action="pin"'), 1)
         self.assertIn("function compareNotes(a,b)", HTML)
         self.assertIn("n.pinned_at?' pinned':''", HTML)
         self.assertIn("pinned_at:n.pinned_at||null", HTML)
 
-    def test_menus_are_consistent_between_card_and_detail(self):
-        self.assertGreaterEqual(HTML.count('data-action="reference-create"'), 2)
-        self.assertIn("if(action==='pin')togglePin(currentDetailId)", HTML)
-        self.assertIn("if(action==='reference-create')referenceAndCreate(currentDetailId)", HTML)
+    def test_note_menu_is_a_single_shared_component(self):
+        # 菜单全局唯一：只有一份 DOM，所有页面（首页/详情/洞察/随机漫步）复用
+        self.assertEqual(HTML.count('id="noteMenuPop"'), 1)
+        self.assertEqual(HTML.count('data-action="reference-create"'), 1)
+        self.assertEqual(HTML.count('data-action="pin"'), 1)
+        self.assertEqual(HTML.count('data-action="insight"'), 1)
+        self.assertIn("function showNoteMenu(btn,id)", HTML)
+        self.assertIn("if(action==='pin')togglePin(id)", HTML)
+        self.assertIn("if(action==='reference-create')referenceAndCreate(id)", HTML)
+        self.assertIn("if(action==='insight')openInsight(id)", HTML)
+        self.assertIn("if(action==='delete')confirmDelete(id)", HTML)
+        self.assertNotIn('detail-menu-item', HTML)
+        self.assertNotIn('id="cardMenuPop"', HTML)
 
     def test_tag_suggest_is_bound_to_all_tag_inputs(self):
         self.assertIn("function setupTagSuggest(inp)", HTML)

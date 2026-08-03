@@ -294,13 +294,6 @@ input,textarea{font-family:inherit;outline:none;border:none}
 .detail-menu-btn{width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--text-2);transition:background .15s,color .15s;flex-shrink:0}
 .detail-menu-btn:hover{background:var(--hover-bg);color:var(--text)}
 .detail-menu-anchor{position:relative;flex-shrink:0}
-.detail-menu{position:absolute;top:calc(100% + 4px);right:0;background:var(--bg);border:1px solid var(--border);border-radius:3px;box-shadow:0 4px 16px rgba(0,0,0,.1);padding:4px;min-width:120px;display:none;z-index:30}
-.detail-menu.show{display:block}
-.detail-menu-item{padding:8px 14px;font-size:13px;color:var(--text);border-radius:6px;cursor:pointer;transition:background .12s;display:flex;align-items:center;gap:7px}
-.detail-menu-item:hover{background:var(--hover-bg)}
-.detail-menu-item.danger{color:var(--red)}
-.detail-menu-item.danger:hover{background:rgba(239,68,68,.08)}
-.detail-menu-item svg{flex-shrink:0;opacity:.7}
 .detail-content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0}
 .detail-content::-webkit-scrollbar{width:6px}
 .detail-content::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
@@ -508,6 +501,28 @@ input,textarea{font-family:inherit;outline:none;border:none}
   .map-theme-panel{top:auto;bottom:12px;right:12px;left:12px;width:auto;max-height:44%;border-radius:12px}
   .map-hint{right:12px;text-align:center}
 }
+
+/* ============ INSIGHT PAGE ============ */
+.insight-mask{position:fixed;inset:0;z-index:242;background:var(--bg);transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden}
+.insight-mask.show{transform:translateX(0)}
+.insight-topbar{height:var(--topbar-h);flex-shrink:0;display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid var(--border-soft)}
+.insight-back{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text-2);padding:6px 10px;border-radius:7px;transition:background .15s,color .15s}
+.insight-back:hover{background:var(--hover-bg);color:var(--text)}
+.insight-title{font-family:var(--mono);font-size:11px;color:var(--text-3);letter-spacing:2px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.insight-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0}
+.insight-inner{max-width:640px;margin:0 auto;padding:20px 20px 80px}
+.insight-source{margin-bottom:6px}
+.insight-source .card{cursor:default}
+.insight-source-kicker,.insight-list-kicker{font-family:var(--mono);font-size:10px;color:var(--text-3);letter-spacing:1.5px;text-transform:uppercase;padding:14px 0 8px 4px;display:flex;align-items:center;gap:8px}
+.insight-source-kicker::after,.insight-list-kicker::after{content:"";flex:1;height:1px;background:var(--border-soft)}
+.insight-rel{position:relative}
+.insight-rank{position:absolute;left:-6px;top:-6px;z-index:3;font-family:var(--mono);font-size:10px;font-weight:600;color:#fff;background:#4A4A4A;min-width:20px;height:20px;border-radius:10px;display:flex;align-items:center;justify-content:center;padding:0 5px;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.insight-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:50px 20px;color:var(--text-3);gap:10px;text-align:center}
+.insight-empty p{font-family:var(--mono);font-size:12px;letter-spacing:.5px}
+@media(max-width:768px){
+  .insight-topbar{padding:0 10px}
+  .insight-inner{padding:16px 14px 80px}
+}
 </style>
 </head>
 <body>
@@ -581,12 +596,12 @@ input,textarea{font-family:inherit;outline:none;border:none}
 <!-- ===== TAG SUGGEST DROPDOWN ===== -->
 <div class="mention-dropdown" id="tagSuggestDropdown"></div>
 
-<!-- ===== CARD MENU POPUP ===== -->
-<!-- note menu items shared by card popup and detail menu; pinned state rendered by JS -->
-<div class="card-menu-pop" id="cardMenuPop">
+<!-- ===== NOTE MENU（全局唯一共享菜单：首页 / 详情 / 洞察 / 随机漫步 均使用本弹层） ===== -->
+<div class="card-menu-pop" id="noteMenuPop">
   <div class="card-menu-item" data-action="pin"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1z"/></svg><span class="pin-label">置顶</span></div>
   <div class="card-menu-item" data-action="edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>编辑</div>
-  <div class="card-menu-item" data-action="reference-create"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>引用并新建</div>
+  <div class="card-menu-item" data-action="reference-create"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>引用</div>
+  <div class="card-menu-item" data-action="insight"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/><circle cx="12" cy="12" r="3.5"/></svg>洞察</div>
   <div class="card-menu-item danger" data-action="delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>删除</div>
 </div>
 
@@ -636,12 +651,6 @@ input,textarea{font-family:inherit;outline:none;border:none}
       <button class="detail-edit-save" id="detailEditSave">保存</button>
       <div class="detail-menu-anchor">
         <button class="detail-menu-btn" id="detailMenuBtn" title="更多操作"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg></button>
-        <div class="detail-menu" id="detailMenu">
-          <div class="detail-menu-item" data-action="pin"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1z"/></svg><span class="pin-label">置顶</span></div>
-          <div class="detail-menu-item" data-action="edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>编辑</div>
-          <div class="detail-menu-item" data-action="reference-create"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>引用并新建</div>
-          <div class="detail-menu-item danger" data-action="delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>删除</div>
-        </div>
       </div>
     </div>
     <div class="detail-content" id="detailContent"></div>
@@ -665,6 +674,15 @@ input,textarea{font-family:inherit;outline:none;border:none}
     <aside class="map-theme-panel" id="mapThemePanel" aria-live="polite"></aside>
     <div class="map-hint">滚轮或双指缩放 · 拖动平移 · 仅为通过质量围栏的个人主题命名</div>
   </div>
+</div>
+
+<!-- ===== INSIGHT PAGE ===== -->
+<div class="insight-mask" id="insightMask">
+  <div class="insight-topbar">
+    <button class="insight-back" id="insightBack"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg><span>返回</span></button>
+    <div class="insight-title" id="insightTitle">洞察</div>
+  </div>
+  <div class="insight-body" id="insightBody"></div>
 </div>
 
 <!-- ===== CONFIRM / TOAST ===== -->
@@ -902,13 +920,29 @@ function emptyHTML(){return `<div class="empty"><svg width="40" height="40" view
 /* ============ PIN ============ */
 async function togglePin(id){const n=notes.find(x=>x.id===id);if(!n)return;const newVal=n.pinned_at?null:new Date().toISOString();const {error}=await sb.from('notes').update({pinned_at:newVal}).eq('id',id);if(error){showToast('操作失败');return}n.pinned_at=newVal;render();showToast(newVal?'已置顶':'已取消置顶')}
 
-/* ============ CARD MENU ============ */
-const cardMenuPop=document.getElementById('cardMenuPop');let cardMenuNoteId=null;
+/* ============ NOTE MENU（全局唯一：所有页面的笔记菜单都走这里） ============ */
+const noteMenuPop=document.getElementById('noteMenuPop');let noteMenuNoteId=null;
 function pinLabelHTML(container,id){const n=notes.find(x=>x.id===id);const lbl=container&&container.querySelector('.pin-label');if(lbl)lbl.textContent=n&&n.pinned_at?'取消置顶':'置顶'}
-function showCardMenu(btn,id){cardMenuNoteId=id;pinLabelHTML(cardMenuPop,id);const r=btn.getBoundingClientRect();const pw=140;let l=r.right-pw;if(l<8)l=8;let t=r.bottom+4;if(t+190>window.innerHeight)t=r.top-194;cardMenuPop.style.left=l+'px';cardMenuPop.style.top=t+'px';cardMenuPop.classList.add('show')}
-function hideCardMenu(){cardMenuPop.classList.remove('show');cardMenuNoteId=null}
-cardMenuPop.addEventListener('click',e=>{const item=e.target.closest('.card-menu-item');if(!item)return;const action=item.dataset.action,id=cardMenuNoteId;hideCardMenu();if(!id)return;if(action==='pin')togglePin(id);if(action==='edit')openDetailEdit(id);if(action==='reference-create')referenceAndCreate(id);if(action==='delete')confirmDelete(id)});
-document.addEventListener('click',e=>{if(!e.target.closest('#cardMenuPop')&&!e.target.closest('.card-menu-btn'))hideCardMenu()});
+function showNoteMenu(btn,id){
+  noteMenuNoteId=id;pinLabelHTML(noteMenuPop,id);
+  const r=btn.getBoundingClientRect(),pw=150;
+  let l=r.right-pw;if(l<8)l=8;
+  const items=noteMenuPop.querySelectorAll('.card-menu-item').length;
+  const ph=items*36+10;
+  let t=r.bottom+4;if(t+ph>window.innerHeight)t=r.top-ph-4;if(t<8)t=8;
+  noteMenuPop.style.left=l+'px';noteMenuPop.style.top=t+'px';noteMenuPop.classList.add('show');
+}
+function hideNoteMenu(){noteMenuPop.classList.remove('show');noteMenuNoteId=null}
+noteMenuPop.addEventListener('click',e=>{
+  const item=e.target.closest('.card-menu-item');if(!item)return;
+  const action=item.dataset.action,id=noteMenuNoteId;hideNoteMenu();if(!id)return;
+  if(action==='pin')togglePin(id);
+  if(action==='edit')openDetailEdit(id);
+  if(action==='reference-create')referenceAndCreate(id);
+  if(action==='insight')openInsight(id);
+  if(action==='delete')confirmDelete(id);
+});
+document.addEventListener('click',e=>{if(!e.target.closest('#noteMenuPop')&&!e.target.closest('.card-menu-btn')&&!e.target.closest('.detail-menu-btn'))hideNoteMenu()});
 
 /* ============ LIGHTBOX ============ */
 function openLightbox(src){document.getElementById('lightboxImg').src=src;document.getElementById('lightbox').classList.add('show')}
@@ -917,7 +951,7 @@ document.getElementById('lightboxClose').addEventListener('click',closeLightbox)
 document.getElementById('lightbox').addEventListener('click',e=>{if(e.target.id==='lightbox')closeLightbox()});
 
 /* ============ DETAIL VIEW ============ */
-const detailMask=document.getElementById('detailMask'),detailContent=document.getElementById('detailContent'),detailMenu=document.getElementById('detailMenu');
+const detailMask=document.getElementById('detailMask'),detailContent=document.getElementById('detailContent');
 let detailEditTextarea=null;
 let detailPendingImgs=[];
 let detailOriginalImgs=[];
@@ -947,7 +981,7 @@ function persistDetailDraft(){if(!currentDetailId||!detailEditTextarea)return;co
 function setDetailSaving(saving){detailSaveInFlight=saving;['detailBack','detailMenuBtn','detailEditSave'].forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=saving});detailContent.querySelectorAll('input,textarea,button').forEach(el=>el.disabled=saving)}
 function toggleDetailEditorOption(panelId,buttonId){const options=document.getElementById('detailEditorOptions'),panel=document.getElementById(panelId),button=document.getElementById(buttonId);if(!options||!panel||!button)return;const opening=panel.hidden;options.querySelectorAll('.detail-editor-option').forEach(el=>el.hidden=true);detailContent.querySelectorAll('#detailTagTool,#detailDateTool').forEach(el=>el.classList.remove('active'));if(opening){options.hidden=false;panel.hidden=false;button.classList.add('active');const input=panel.querySelector('input');if(input)setTimeout(()=>input.focus(),0)}else options.hidden=true}
 function openDetail(id){
-  detailEditSession++;const n=notes.find(x=>x.id===id);if(!n)return;currentDetailId=id;detailMask.classList.remove('editing');detailMenu.classList.remove('show');
+  detailEditSession++;const n=notes.find(x=>x.id===id);if(!n)return;currentDetailId=id;detailMask.classList.remove('editing');hideNoteMenu();
   document.getElementById('detailBackText').textContent='返回';
   const date=noteDate(n),fd=date.replace(/-/g,'.');
   document.getElementById('detailCrumb').textContent='#'+(n.tags[0]||'未分类')+' · '+fd+' '+fmtTime(n.time);
@@ -959,7 +993,7 @@ function openDetail(id){
   detailMask.classList.add('show');detailContent.scrollTop=0;renderDetailImages(n);
 }
 async function openDetailEdit(id){
-  const session=++detailEditSession,n=notes.find(x=>x.id===id);if(!n)return;currentDetailId=id;detailMask.classList.add('editing');detailMenu.classList.remove('show');
+  const session=++detailEditSession,n=notes.find(x=>x.id===id);if(!n)return;currentDetailId=id;detailMask.classList.add('editing');hideNoteMenu();
   document.getElementById('detailBackText').textContent='取消';
   let draft=readDraft(editDraftKey(id),null);
   if(!isEditDraftCurrent(draft,n)){const staleUploads=(draft.imgs||[]).filter(path=>!n.imgs.includes(path));if(!await removeStoragePaths(staleUploads,'旧草稿图片清理失败')){if(session===detailEditSession)detailMask.classList.remove('editing');return}if(session!==detailEditSession)return;clearDraft(editDraftKey(id));draft=null;showToast('笔记已更新，已忽略旧编辑草稿')}
@@ -984,7 +1018,7 @@ async function renderDetailThumbs(){const count=document.getElementById('detailA
 async function removeDetailImg(i){const path=detailPendingImgs[i];if(!detailOriginalImgs.includes(path)&&!await removeStoragePaths([path]))return;detailPendingImgs.splice(i,1);persistDetailDraft();renderDetailThumbs()}
 async function handleDetailImages(e){const input=e.target,session=detailEditSession,noteId=currentDetailId,draftKey=editDraftKey(noteId),paths=await uploadImageFiles(Array.from(input.files));if(!isUploadSessionCurrent(session,detailEditSession,draftKey,editDraftKey(currentDetailId),detailMask.classList.contains('editing'))){await removeStoragePaths(paths,'已清理取消编辑后的图片');input.value='';return}detailPendingImgs.push(...paths);persistDetailDraft();renderDetailThumbs();input.value=''}
 function linkCardHTML(n){const p=stripBilinks(n.text).replace(/[#*`>]/g,'').replace(/\n/g,' ').slice(0,100);const tags=n.tags.map(t=>`<span class="link-card-tag">${escapeHTML(t)}</span>`).join('');return `<div class="link-card" data-note-id="${Number(n.id)}"><div class="link-card-ts">${fmtDate(noteDate(n)).sub} ${fmtTime(n.time)}</div><div class="link-card-txt">${escapeHTML(p)}</div><div class="link-card-tags">${tags}</div></div>`}
-function closeDetail(){detailEditSession++;detailMask.classList.remove('show');detailMask.classList.remove('editing');detailMenu.classList.remove('show')}
+function closeDetail(){detailEditSession++;detailMask.classList.remove('show');detailMask.classList.remove('editing')}
 async function cancelDetailEdit(){if(detailSaveInFlight){showToast('正在保存，请稍候');return}const session=++detailEditSession,noteId=currentDetailId,n=notes.find(x=>x.id===noteId);if(!n)return;const uploads=detailPendingImgs.filter(path=>!n.imgs.includes(path));if(!await removeStoragePaths(uploads))return;clearDraft(editDraftKey(noteId));if(session===detailEditSession&&currentDetailId===noteId)openDetail(noteId)}
 document.getElementById('detailBack').addEventListener('click',()=>{if(detailMask.classList.contains('editing'))cancelDetailEdit();else closeDetail()});
 document.getElementById('detailEditSave').addEventListener('click',async()=>{
@@ -1001,9 +1035,7 @@ document.getElementById('detailEditSave').addEventListener('click',async()=>{
   }catch(e){showToast('保存失败，请检查网络后重试')}
   finally{setDetailSaving(false)}
 });
-document.getElementById('detailMenuBtn').addEventListener('click',e=>{e.stopPropagation();pinLabelHTML(detailMenu,currentDetailId);detailMenu.classList.toggle('show')});
-document.addEventListener('click',e=>{if(!e.target.closest('#detailMenuBtn')&&!e.target.closest('#detailMenu'))detailMenu.classList.remove('show')});
-detailMenu.addEventListener('click',e=>{const item=e.target.closest('.detail-menu-item');if(!item)return;const action=item.dataset.action;detailMenu.classList.remove('show');if(action==='pin')togglePin(currentDetailId);if(action==='edit')openDetailEdit(currentDetailId);if(action==='reference-create')referenceAndCreate(currentDetailId);if(action==='delete')confirmDelete(currentDetailId)});
+document.getElementById('detailMenuBtn').addEventListener('click',e=>{e.stopPropagation();if(noteMenuPop.classList.contains('show')&&noteMenuNoteId===currentDetailId){hideNoteMenu();return}showNoteMenu(e.currentTarget,currentDetailId)});
 detailContent.addEventListener('click',e=>{const bilink=e.target.closest('.bilink[data-note-id]'),linkCard=e.target.closest('.link-card[data-note-id]'),tag=e.target.closest('.detail-tag[data-tag]');if(bilink){e.preventDefault();openDetail(Number(bilink.dataset.noteId));return}if(linkCard){openDetail(Number(linkCard.dataset.noteId));return}if(tag){closeDetail();selectTag(tag.dataset.tag)}});
 
 /* ============ REFERENCE AND CREATE ============ */
@@ -1182,6 +1214,63 @@ document.getElementById('mapZoomIn').addEventListener('click',()=>zoomMapBy(1.35
 mapThemePanel.addEventListener('click',e=>{if(e.target.closest('.map-theme-panel-close')){mapThemePanel.classList.remove('show');return}const note=e.target.closest('[data-map-note-id]');if(note){closeMap();openDetail(Number(note.dataset.mapNoteId))}});
 window.addEventListener('resize',()=>{if(mapMask.classList.contains('show'))renderMap()});
 
+/* ============ INSIGHT PAGE ============ */
+const insightMask=document.getElementById('insightMask'),insightBody=document.getElementById('insightBody'),insightTitle=document.getElementById('insightTitle');
+let insightSourceId=null;
+const insightStack=[];
+
+function dbRowToNote(r){return{id:r.id,text:r.text,tags:r.tags||[],imgs:r.imgs||[],recorded_on:r.recorded_on||null,pinned_at:r.pinned_at||null,created_at:r.created_at,updated_at:r.updated_at,time:dbTimeToLocal(r.created_at)}}
+
+async function openInsight(id){
+  const n=notes.find(x=>x.id===id);if(!n)return;
+  if(insightMask.classList.contains('show')&&insightSourceId!==null&&insightSourceId!==id)insightStack.push(insightSourceId);
+  insightSourceId=id;hideNoteMenu();closeSidebarMobile();
+  insightTitle.textContent='洞察 · '+noteLinkLabel(n).slice(0,14);
+  insightMask.classList.add('show');
+  insightBody.innerHTML='<div class="insight-inner"><div class="insight-empty"><p style="animation:pulse 1.5s ease-in-out infinite">正在寻找关联笔记...</p></div></div>';
+  renderInsightSource(n);
+  let rows=[];
+  try{
+    const {data,error}=await sb.rpc('note_neighbors',{p_note_id:id,p_limit:5});
+    if(error)throw error;rows=data||[];
+  }catch(e){
+    if(insightSourceId!==id)return;
+    insightBody.innerHTML='<div class="insight-inner"><div class="insight-empty"><p>关联计算失败</p><p style="font-size:11px">'+escapeHTML(String(e.message||e))+'</p></div></div>';return;
+  }
+  if(insightSourceId!==id)return;
+  renderInsightList(n,rows.map(dbRowToNote));
+}
+
+function renderInsightSource(n){
+  insightBody.innerHTML=`<div class="insight-inner"><div class="insight-source-kicker">源笔记</div><div class="insight-source">${cardHTML(n)}</div><div class="insight-list-kicker">关联笔记</div><div id="insightList"></div></div>`;
+}
+
+function renderInsightList(source,related){
+  const list=document.getElementById('insightList');if(!list||insightSourceId!==source.id)return;
+  // 若源笔记在本地列表中已被编辑/删除，源卡片同步刷新
+  const fresh=notes.find(x=>x.id===source.id);
+  if(fresh){const src=insightBody.querySelector('.insight-source');if(src)src.innerHTML=cardHTML(fresh)}
+  if(!related.length){list.innerHTML='<div class="insight-empty"><p>这条笔记还没有找到足够近的邻居</p><p style="font-size:11px">多写几条，或等待向量计算完成</p></div>';return}
+  list.innerHTML=related.map((n,i)=>`<div class="insight-rel"><span class="insight-rank">${i+1}</span>${cardHTML(n)}</div>`).join('');
+}
+
+function closeInsight(){
+  const prev=insightStack.pop();
+  if(prev!==undefined&&notes.find(x=>x.id===prev)){openInsight(prev);return}
+  insightMask.classList.remove('show');insightSourceId=null;
+}
+document.getElementById('insightBack').addEventListener('click',closeInsight);
+
+insightBody.addEventListener('click',function(e){
+  const menuBtn=e.target.closest('.card-menu-btn');
+  if(menuBtn){e.stopPropagation();e.preventDefault();showNoteMenu(menuBtn,parseInt(menuBtn.dataset.noteId));return}
+  const tag=e.target.closest('.card-tag');
+  if(tag){e.stopPropagation();e.preventDefault();closeInsightAll();selectTag(tag.dataset.tag);return}
+  const card=e.target.closest('.card');
+  if(card&&card.dataset.id)openDetail(parseInt(card.dataset.id));
+});
+function closeInsightAll(){insightStack.length=0;insightMask.classList.remove('show');insightSourceId=null}
+
 /* ============ @ MENTION ============ */
 let mentionState={active:false,textarea:null,results:[],selectedIndex:0,start:0};
 function checkMention(ta){const cur=ta.selectionStart,text=ta.value.substring(0,cur),m=text.match(/(?:^|\s)@([^\s]*)$/);if(!m){hideMentionDropdown();return}const q=m[1],atIdx=cur-q.length-1;mentionState.textarea=ta;mentionState.start=atIdx;const cands=notes.filter(n=>n.id!==currentDetailId).slice().sort(compareNotes);const filtered=cands.filter(n=>{const t=noteLinkLabel(n).toLowerCase(),p=stripBilinks(n.text).replace(/[#*`>]/g,'').replace(/\n/g,' ').toLowerCase();return t.includes(q.toLowerCase())||p.includes(q.toLowerCase())}).slice(0,8);if(filtered.length===0){hideMentionDropdown();return}mentionState.active=true;mentionState.results=filtered;mentionState.selectedIndex=0;showMentionDropdown(ta,filtered)}
@@ -1296,7 +1385,7 @@ document.getElementById('sideAvatarImg').src=AVATAR_DATA_URI;
 
 /* ============ FEED EVENTS ============ */
 document.getElementById('feed').addEventListener('click',function(e){
-  const menuBtn=e.target.closest('.card-menu-btn');if(menuBtn){e.stopPropagation();e.preventDefault();showCardMenu(menuBtn,parseInt(menuBtn.dataset.noteId));return}
+  const menuBtn=e.target.closest('.card-menu-btn');if(menuBtn){e.stopPropagation();e.preventDefault();showNoteMenu(menuBtn,parseInt(menuBtn.dataset.noteId));return}
   const tag=e.target.closest('.card-tag');if(tag){e.stopPropagation();e.preventDefault();selectTag(tag.dataset.tag);return}
   const card=e.target.closest('.card');if(card&&card.dataset.id)openDetail(parseInt(card.dataset.id));
 });
