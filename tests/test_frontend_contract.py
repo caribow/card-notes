@@ -49,8 +49,31 @@ class FrontendContractTests(unittest.TestCase):
         css = desktop.group(1)
         self.assertIn('height:auto', css)
         self.assertIn('max-height:calc(100vh - 64px)', css)
-        self.assertIn('margin:32px 0 32px 32px', css)
+        self.assertIn('grid-template-columns:248px minmax(0,640px)', css)
+        self.assertIn('column-gap:28px', css)
+        self.assertIn('max-width:916px', css)
+        self.assertIn('margin:0 auto', css)
+        self.assertIn('padding:32px 0 80px', css)
+        self.assertIn('position:relative', css)
+        self.assertNotIn('position:sticky', css)
+        self.assertIn('.feed{padding:0 0 80px}', css)
         self.assertNotIn('position:relative;transform:none !important;box-shadow:none', css)
+
+    def test_obsolete_topbar_brand_is_removed(self):
+        self.assertNotIn('topbar-brand', HTML)
+        self.assertNotIn('>闪念笔记</span>', HTML)
+
+    def test_mobile_navigation_and_touch_targets_are_phone_safe(self):
+        mobile = re.search(r'@media\(max-width:768px\)\{([\s\S]*?)\n\}', HTML)
+        self.assertIsNotNone(mobile)
+        assert mobile is not None
+        css = mobile.group(1)
+        self.assertIn('--side-w:min(86vw,300px)', css)
+        self.assertIn('.menu-btn{width:40px;height:40px}', css)
+        self.assertIn('.card-menu-btn{width:36px;height:36px', css)
+        self.assertIn('.detail-menu-btn{width:40px;height:40px}', css)
+        self.assertIn('.modal .modal-textarea{font-size:16px}', css)
+        self.assertIn('.detail-edit-area{font-size:16px}', css)
 
     def test_recorded_on_drives_display_but_created_at_is_preserved(self):
         self.assertIn('id="noteRecordedOn"', HTML)
@@ -190,8 +213,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn('function resetMapZoom()', HTML)
         self.assertIn('touch-action:none', HTML)
 
-    def test_mobile_fullscreen_and_topbar_brand(self):
-        self.assertIn('<span class="topbar-brand">闪念笔记</span>', HTML)
+    def test_mobile_fullscreen_surface(self):
+        self.assertNotIn('<span class="topbar-brand">闪念笔记</span>', HTML)
         self.assertIn(".modal{max-width:none;padding:0;transform:none}", HTML)
         self.assertIn(".detail-compose{border:none;border-radius:0}", HTML)
         self.assertIn("blockBg", HTML)
