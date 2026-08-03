@@ -26,6 +26,32 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("document.getElementById('detailEditSave').click()", HTML)
         self.assertRegex(HTML, r"openDetailEdit\(id\)[\s\S]*?detailBackText'\)\.textContent='取消'")
 
+    def test_both_fullscreen_editors_use_text_save_buttons(self):
+        self.assertRegex(HTML, r'id="btnSave"[^>]*>保存</button>')
+        self.assertRegex(HTML, r'id=\"detailEditorSubmit\"[^>]*>保存</button>')
+        detail_submit = re.search(r'id=\"detailEditorSubmit\"([\s\S]{0,250})</button>', HTML)
+        self.assertIsNotNone(detail_submit)
+        assert detail_submit is not None
+        self.assertNotIn('<svg', detail_submit.group(1))
+
+    def test_detail_menu_is_anchored_to_its_button(self):
+        self.assertIn('class="detail-menu-anchor"', HTML)
+        self.assertRegex(
+            HTML,
+            r'<div class="detail-menu-anchor">[\s\S]{0,500}id="detailMenuBtn"[\s\S]{0,500}id="detailMenu"',
+        )
+        self.assertIn('.detail-menu-anchor{position:relative;flex-shrink:0}', HTML)
+
+    def test_desktop_sidebar_is_a_finite_card_not_a_viewport_rail(self):
+        desktop = re.search(r'@media\(min-width:769px\)\{([\s\S]*?)\n\}', HTML)
+        self.assertIsNotNone(desktop)
+        assert desktop is not None
+        css = desktop.group(1)
+        self.assertIn('height:auto', css)
+        self.assertIn('max-height:calc(100vh - 64px)', css)
+        self.assertIn('margin:32px 0 32px 32px', css)
+        self.assertNotIn('position:relative;transform:none !important;box-shadow:none', css)
+
     def test_recorded_on_drives_display_but_created_at_is_preserved(self):
         self.assertIn('id="noteRecordedOn"', HTML)
         self.assertIn('id="detailEditRecordedOn"', HTML)
