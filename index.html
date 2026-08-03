@@ -60,16 +60,20 @@ input,textarea{font-family:inherit;outline:none;border:none}
 .heatmap-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .heatmap-title{font-family:var(--mono);font-size:10px;color:var(--side-text-3);letter-spacing:.5px;text-transform:uppercase}
 .heatmap-count{font-family:var(--mono);font-size:11px;color:var(--side-text);font-weight:500}
-.heatmap-grid{display:grid;grid-template-columns:repeat(13,1fr);gap:3px}
+.heatmap-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
 .heatmap-cell{
-  aspect-ratio:1;border-radius:1px;background:#3F3F3F;cursor:pointer;
+  aspect-ratio:1;border-radius:1px;background:#3F3F3F;
   transition:transform .1s,background .15s;
 }
 .heatmap-cell:hover{transform:scale(1.4);z-index:5;position:relative}
+.heatmap-cell.empty{background:transparent;pointer-events:none}
+.heatmap-cell.today{outline:1px solid #9A9A9A;outline-offset:1px}
 .heatmap-cell.l1{background:#6E6E6E}
 .heatmap-cell.l2{background:#969696}
 .heatmap-cell.l3{background:#BEBEBE}
 .heatmap-cell.l4{background:#E8E8E8}
+.heatmap-week{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px}
+.heatmap-week span{font-family:var(--mono);font-size:8px;color:var(--side-text-3);text-align:center}
 .heatmap-months{display:flex;justify-content:space-between;margin-top:4px;font-family:var(--mono);font-size:8px;color:var(--side-text-3)}
 
 .tree{flex:1;overflow-y:auto;padding:6px 8px 16px;list-style:none}
@@ -384,6 +388,8 @@ input,textarea{font-family:inherit;outline:none;border:none}
 /* ============ LOGIN ============ */
 .login-mask{position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s}
 .login-mask.show{opacity:1;pointer-events:auto}
+/* Safari 会对 DOM 中存在的密码字段触发自动填充弹窗，即使元素不可见；已登录时彻底移除布局与渲染 */
+.app.authed ~ .login-mask,.login-mask.hidden-auth{display:none !important}
 .login-box{width:90%;max-width:340px;text-align:center}
 .login-logo{font-family:var(--mono);font-size:13px;color:var(--text-3);letter-spacing:2px;text-transform:uppercase;margin-bottom:32px}
 .login-logo .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#4A4A4A;margin-right:6px;vertical-align:middle}
@@ -436,7 +442,8 @@ input,textarea{font-family:inherit;outline:none;border:none}
   .detail-compose-tool{width:29px}
   .detail-tool-divider{margin:0 2px}
   .format-panel .md-btn{min-width:30px;height:28px}
-  .heatmap-grid{grid-template-columns:repeat(10,1fr)}
+  .heatmap-grid{grid-template-columns:repeat(7,1fr)}
+  .heatmap-week{grid-template-columns:repeat(7,1fr)}
 }
 @media(min-width:769px){
   /* Desktop: sidebar and feed are one centered, top-aligned document flow. */
@@ -528,6 +535,7 @@ input,textarea{font-family:inherit;outline:none;border:none}
         <span class="heatmap-title">活跃度</span>
         <span class="heatmap-count" id="heatmapCount">0 篇</span>
       </div>
+      <div class="heatmap-week"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
       <div class="heatmap-grid" id="heatmapGrid"></div>
       <div class="heatmap-months" id="heatmapMonths"></div>
     </div>
@@ -780,25 +788,24 @@ function renderHeatmap(){
   const grid=document.getElementById('heatmapGrid');
   const monthsEl=document.getElementById('heatmapMonths');
   const countEl=document.getElementById('heatmapCount');
-  const today=new Date();
-  const days=91; // ~13 weeks
+  const now=new Date(),y=now.getFullYear(),m=now.getMonth();
+  const daysInMonth=new Date(y,m+1,0).getDate();
+  // 周一对齐：getDay() 周日=0 → 偏移 6，周一=1 → 偏移 0
+  const offset=(new Date(y,m,1).getDay()+6)%7;
+  const todayKey=y+'-'+('0'+(m+1)).slice(-2)+'-'+('0'+now.getDate()).slice(-2);
   const dailyCount={};
   notes.forEach(n=>{const d=noteDate(n);dailyCount[d]=(dailyCount[d]||0)+1});
   const cells=[];
-  const monthLabels=[];
-  let lastMonth=-1;
-  for(let i=days-1;i>=0;i--){
-    const d=new Date(today);d.setDate(d.getDate()-i);
-    const key=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+  for(let i=0;i<offset;i++)cells.push('<div class="heatmap-cell empty"></div>');
+  for(let d=1;d<=daysInMonth;d++){
+    const key=y+'-'+('0'+(m+1)).slice(-2)+'-'+('0'+d).slice(-2);
     const cnt=dailyCount[key]||0;
     let lvl=0;
     if(cnt>=4)lvl=4;else if(cnt>=3)lvl=3;else if(cnt>=2)lvl=2;else if(cnt>=1)lvl=1;
-    cells.push({key,cnt,lvl,date:d});
-    if(d.getMonth()!==lastMonth){monthLabels.push({idx:cells.length-1,label:['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'][d.getMonth()]});lastMonth=d.getMonth()}
+    cells.push(`<div class="heatmap-cell${lvl?' l'+lvl:''}${key===todayKey?' today':''}" title="${key}: ${cnt}篇"></div>`);
   }
-  grid.innerHTML=cells.map(c=>`<div class="heatmap-cell${c.lvl?' l'+c.lvl:''}" title="${c.key}: ${c.cnt}篇"></div>`).join('');
-  // months label
-  monthsEl.innerHTML=monthLabels.map((m,i)=>`<span>${m.label}</span>`).join('');
+  grid.innerHTML=cells.join('');
+  monthsEl.innerHTML=`<span>${y}年${m+1}月</span>`;
   countEl.textContent=notes.length+' 篇';
 }
 
@@ -1302,10 +1309,10 @@ async function initAuth(){
   if(session){showApp(session.user.id)}else{showLogin()}
 }
 
-function showLogin(){loginMask.classList.add('show');loginEmail.focus()}
+function showLogin(){loginMask.classList.remove('hidden-auth');loginMask.classList.add('show');loginEmail.focus()}
 function showApp(userId){
   currentUserId=userId;migrateLegacyDrafts();
-  loginMask.classList.remove('show');
+  loginMask.classList.remove('show');loginMask.classList.add('hidden-auth');
   document.querySelector('.app').classList.add('authed');
   document.getElementById('feed').innerHTML='<div class="empty"><p style="animation:pulse 1.5s ease-in-out infinite">加载中...</p></div>';
   loadNotes();
