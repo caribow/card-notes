@@ -17,6 +17,8 @@
   --text:#3A3A3A; --text-2:#8A8A8A; --text-3:#B0B0B0;
   --tag-bg:#F2F2F2; --hover-bg:#ECECEC; --mask:rgba(0,0,0,.18);
   --red:#ef4444;
+  /* 砖红焦点色系：认知地图「认知落点色」，低饱和印泥红，仅标记当前关注落点 */
+  --brick:#A65D57; --brick-deep:#84443F; --brick-mid:#C58D87; --brick-line:#DFC2BE; --brick-bg:#F6ECEA;
   --side-bg:#4A4A4A; --side-bg-deep:#3D3D3D; --side-border:#3F3F3F;
   --side-text:#D8D8D8; --side-text-2:#9A9A9A; --side-text-3:#777777;
   --side-hover:#545454; --side-active-bg:#5C5C5C;
@@ -498,17 +500,53 @@ input,textarea{font-family:inherit;outline:none;border:none}
 
 /* ---- 话题卡片 ---- */
 .map-topics-inner{max-width:640px;margin:0 auto;padding:22px 16px 60px}
-.map-topics-kicker{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--text-3)}
-.map-topics-sub{font-size:11px;color:var(--text-3);margin-top:4px;margin-bottom:18px}
-.map-topics-grid{display:flex;flex-direction:column;gap:12px}
-.map-topic-card{border:1px solid var(--border);border-radius:3px;background:var(--bg);padding:16px;cursor:pointer;transition:border-color .15s,background .15s}
-.map-topic-card:hover{border-color:#999;background:var(--bg-soft)}
-.map-topic-name{font-size:16px;font-weight:600;color:var(--text);line-height:1.35}
-.map-topic-def{font-size:12px;color:var(--text-2);line-height:1.55;margin-top:5px}
-.map-topic-meta{font-family:var(--mono);font-size:10px;color:#888;margin-top:8px}
-.map-topic-years{display:flex;align-items:flex-end;gap:4px;margin-top:10px;min-height:34px}
-.map-year-col{display:flex;flex-direction:column;align-items:center;gap:3px}
-.map-year-bar{width:12px;background:var(--text-3);border-radius:1px;opacity:.75}
+
+/* ---- 关注编年谱（bump chart：横轴年份，纵轴当年关注排名，轨迹交叉即关注点迁移） ---- */
+.map-chrono{margin-bottom:8px}
+.map-chrono-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:4px}
+.map-chrono-title{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--text-3)}
+.map-chrono-range{font-family:var(--mono);font-size:10px;color:var(--text-3)}
+.map-chrono-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.map-chrono-svg{display:block}
+.map-chrono-track{stroke:#D3CECB;stroke-width:1;fill:none;cursor:pointer;transition:stroke .15s,opacity .2s}
+.map-chrono-track-hit{stroke:transparent;stroke-width:14;fill:none;cursor:pointer}
+.map-chrono-node{fill:#fff;stroke:#B8B2AE;stroke-width:1.2;cursor:pointer;transition:fill .15s,stroke .15s}
+.map-chrono-node.hollow{fill:#fff;stroke-dasharray:2 2}
+.map-chrono-name{font-family:var(--sans);font-size:12px;fill:var(--text-2);cursor:pointer;transition:fill .15s}
+.map-chrono-year{font-family:var(--mono);font-size:9px;fill:var(--text-3);text-anchor:middle}
+.map-chrono-yearbar{stroke:var(--border);stroke-width:1}
+/* 选中态：当前轨迹砖红，其余淡出 */
+.map-chrono-svg.has-focus .map-chrono-track{opacity:.16}
+.map-chrono-svg.has-focus .map-chrono-track.focus{opacity:1;stroke:var(--brick);stroke-width:1.5}
+.map-chrono-svg.has-focus .map-chrono-name{opacity:.4}
+.map-chrono-svg.has-focus .map-chrono-name.focus{opacity:1;fill:var(--brick-deep);font-weight:600}
+.map-chrono-svg.has-focus .map-chrono-node{opacity:.3}
+.map-chrono-svg.has-focus .map-chrono-node.focus{opacity:1;fill:var(--brick);stroke:var(--brick-deep)}
+.map-chrono-event{stroke:var(--brick);fill:none}
+/* ---- 选择落点窄条（仅筛选时出现，淡红底） ---- */
+.map-locus{display:none;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--brick-deep);background:var(--brick-bg);border:1px solid var(--brick-line);border-radius:3px;padding:8px 12px;margin:12px 0 16px}
+.map-locus.show{display:flex}
+.map-locus-text{flex:1;line-height:1.4}
+.map-locus-clear{color:var(--brick);font-size:15px;line-height:1;padding:2px 6px;border-radius:3px}
+.map-locus-clear:hover{background:var(--brick-line)}
+/* ---- 话题目录（去卡片感，整行条目） ---- */
+.map-topics-list{display:flex;flex-direction:column}
+.map-topic-row{display:flex;align-items:center;gap:14px;padding:13px 4px;border-top:1px solid var(--border-soft);cursor:pointer;transition:background .15s;position:relative}
+.map-topic-row:last-child{border-bottom:1px solid var(--border-soft)}
+.map-topic-row:hover{background:var(--bg-soft)}
+.map-topic-row:hover .map-topic-idx{color:var(--brick)}
+.map-topic-row:hover .map-topic-name{transform:translateX(2px)}
+.map-topic-row.selected::before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);width:2px;height:24px;background:var(--brick);border-radius:1px}
+.map-topic-idx{font-family:var(--mono);font-size:11px;color:var(--text-3);width:22px;flex-shrink:0;transition:color .15s}
+.map-topic-main{flex:1;min-width:0}
+.map-topic-name{font-size:16px;font-weight:600;color:var(--text);line-height:1.35;transition:transform .15s}
+.map-topic-def{font-size:12px;color:var(--text-2);line-height:1.5;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:520px}
+.map-topic-side{flex-shrink:0;text-align:right}
+.map-topic-meta{font-family:var(--mono);font-size:10px;color:#888;white-space:nowrap}
+.map-topic-years{display:flex;align-items:flex-end;gap:3px;margin-top:6px;min-height:26px;justify-content:flex-end}
+.map-year-col{display:flex;flex-direction:column;align-items:center;gap:2px}
+.map-year-bar{width:10px;background:var(--text-3);border-radius:1px;opacity:.7}
+.map-topic-row.selected .map-year-bar{background:var(--brick-mid)}
 .map-year-lab{font-family:var(--mono);font-size:8px;color:var(--text-3)}
 /* 话题详情（笔记列表） */
 .map-topic-back{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--text-2);padding:6px 10px;border-radius:6px;margin-bottom:14px}
@@ -1409,43 +1447,129 @@ async function openMap(){
       mapCount.textContent='';return;
     }
     mapTopicsCache=data.payload;
+    mapFocus=null;
     renderTopicCards(data.payload,data.generated_at);
+    // 旧版缓存无编年谱数据，温和提示重建
+    if(!data.payload.years){mapCount.textContent=(data.payload.topics||[]).length+' 个话题 · 点「重建话题」可看编年谱'}
   }catch(e){console.error(e);mapCanvas.innerHTML='<div class="map-empty"><p>读取失败</p><p style="font-size:11px">'+escapeHTML(String(e.message||e))+'</p></div>'}
 }
 function closeMap(){mapMask.classList.remove('show')}
 
 /* ---- 话题卡片渲染 ---- */
-function renderTopicCards(payload,generatedAt){
+let mapFocus=null; // 当前认知落点（{type:'topic'|'node',topicIdx,year?}）
+function renderTopicCards(payload,generatedAt,focus){
   const topics=payload.topics||[];
   mapCount.textContent=topics.length+' 个话题';
   const gen=generatedAt?('更新于 '+String(generatedAt).slice(0,10)):'';
-  const cards=topics.map((t,i)=>topicCardHTML(t,i)).join('');
-  mapCanvas.innerHTML=`<div class="map-topics-inner"><div class="map-topics-kicker">可能被你忽略的反复话题</div><div class="map-topics-sub">AI 从你的笔记向量里归纳 · ${gen}</div><div class="map-topics-grid">${cards}</div></div>`;
+  const years=payload.years||[];
+  const totalNotes=payload.generated_note_count||0;
+  const chrono=years.length?chronicleHTML(payload,focus):'';
+  const locus=focus?locusHTML(payload,focus):'';
+  const cards=topics.map((t,i)=>topicRowHTML(t,i,focus)).join('');
+  mapCanvas.innerHTML=`<div class="map-topics-inner">${chrono}${locus}<div class="map-topics-list">${cards}</div></div>`;
 }
 
-function topicCardHTML(t,i){
-  const yc=t.year_counts||{},years=Object.keys(yc).sort();
-  const maxC=Math.max(1,...Object.values(yc).map(Number));
-  // 年度分布小条形（标准化前先用绝对值，最多 24px 高）
-  const bars=years.map(y=>{const h=Math.max(2,Math.round(Number(yc[y])/maxC*24));return `<div class="map-year-col" title="${y} 年 ${yc[y]} 条"><div class="map-year-bar" style="height:${h}px"></div><div class="map-year-lab">${String(y).slice(2)}</div></div>`}).join('');
-  const span=t.first_date&&t.last_date?`${String(t.first_date).slice(0,4)}–${String(t.last_date).slice(0,4)}`:'';
-  return `<div class="map-topic-card" data-topic-idx="${i}">
-    <div class="map-topic-name">${escapeHTML(t.name||'未命名话题')}</div>
-    <div class="map-topic-def">${escapeHTML(t.definition||'')}</div>
-    <div class="map-topic-meta">${t.count||0} 条 · 横跨 ${span}</div>
-    <div class="map-topic-years">${bars}</div>
+/* ---- 关注编年谱（bump chart）：横轴年份，纵轴当年关注排名 ---- */
+function chronicleHTML(payload,focus){
+  const topics=payload.topics||[],years=payload.years||[];
+  if(!years.length||!topics.length)return '';
+  const focusIdx=focus&&focus.type==='topic'?focus.topicIdx:(focus&&focus.type==='node'?focus.topicIdx:null);
+  // 布局参数
+  const nameW=118,topPad=34,bottomPad=30,leftPad=6,rightPad=14;
+  const maxRank=Math.max(...topics.map(t=>Math.max(...Object.values(t.timeline||{}).map(n=>n.rank||1),1)),1);
+  const yearGap=Math.max(72,Math.min(150,Math.floor(560/Math.max(1,years.length-1))||150));
+  const width=leftPad+nameW+yearGap*Math.max(1,years.length-1)+rightPad;
+  const rowH=Math.min(30,Math.max(20,Math.floor(250/Math.max(1,maxRank))));
+  const chartH=topPad+rowH*Math.max(1,maxRank-1)+bottomPad;
+  const maxCount=Math.max(1,...topics.flatMap(t=>Object.values(t.timeline||{}).map(n=>n.count||0)));
+  const nodeR=c=>Math.max(3,Math.min(9,Math.round(Math.sqrt(c)/Math.sqrt(maxCount)*9))); // sqrt 压缩，避免高产年压倒
+  const X=i=>leftPad+nameW+i*yearGap;
+  const Y=rank=>topPad+(rank-1)*rowH;
+  const yearIdx={};years.forEach((y,i)=>yearIdx[y]=i);
+  const focusClass=focusIdx!=null?' has-focus':'';
+
+  // 年份刻度（底部）+ 年度总量细刻度
+  const yearLabels=years.map((y,i)=>`<text class="map-chrono-year" x="${X(i)}" y="${chartH-8}">${y}</text>`).join('');
+  const tracks=topics.map((t,ti)=>{
+    const tl=t.timeline||{};
+    const ys=Object.keys(tl).sort();
+    if(!ys.length)return '';
+    const isFocus=focusIdx===ti;
+    // 分段：相邻年份连续就连线，断开（中间无笔记）则分段
+    let segs=[],cur=[];
+    ys.forEach(y=>{const i=yearIdx[y];if(cur.length&&i-yearIdx[cur[cur.length-1]]>1){segs.push(cur);cur=[]}cur.push(y)});
+    if(cur.length)segs.push(cur);
+    const paths=segs.map(seg=>{
+      if(seg.length===1)return ''; // 单点不画线
+      const d=seg.map((y,k)=>(k?'L':'M')+X(yearIdx[y])+' '+Y(tl[y].rank)).join(' ');
+      return `<path class="map-chrono-track${isFocus?' focus':''}" data-topic-idx="${ti}" d="${d}"/>`;
+    }).join('');
+    const hitPath=segs.filter(s=>s.length>1).map(seg=>{
+      const d=seg.map((y,k)=>(k?'L':'M')+X(yearIdx[y])+' '+Y(tl[y].rank)).join(' ');
+      return `<path class="map-chrono-track-hit" data-topic-idx="${ti}" d="${d}"/>`;
+    }).join('');
+    // 节点：大小=当年数量，空心=仅1条；事件标记
+    const nodes=ys.map(y=>{
+      const n=tl[y],r=nodeR(n.count),cx=X(yearIdx[y]),cy=Y(n.rank);
+      const hollow=n.count<=1?' hollow':'';
+      let evt='';
+      if(n.events){
+        if(n.events.includes('revival'))evt=`<circle class="map-chrono-event" cx="${cx}" cy="${cy}" r="${r+3.5}" stroke-width="1"/>`;
+        else if(n.events.includes('surge'))evt=`<path class="map-chrono-event" d="M${cx-4} ${cy+r+5} L${cx} ${cy+r+1} L${cx+4} ${cy+r+5}" stroke-width="1.2"/>`;
+      }
+      return `${evt}<circle class="map-chrono-node${hollow}${isFocus?' focus':''}" data-topic-idx="${ti}" data-year="${y}" cx="${cx}" cy="${cy}" r="${r}"><title>${y} · ${escapeHTML(t.name)} · ${n.count} 条 · 当年第 ${n.rank}</title></circle>`;
+    }).join('');
+    return paths+hitPath+nodes;
+  }).join('');
+  // 左侧话题名（取该话题最近一年排名位置的 Y）
+  const names=topics.map((t,ti)=>{
+    const tl=t.timeline||{},ys=Object.keys(tl).sort();if(!ys.length)return '';
+    const lastY=ys[ys.length-1],isFocus=focusIdx===ti;
+    return `<text class="map-chrono-name${isFocus?' focus':''}" data-topic-idx="${ti}" x="${leftPad}" y="${Y(tl[lastY].rank)+4}">${escapeHTML(String(t.name||'').slice(0,7))}</text>`;
+  }).join('');
+
+  return `<div class="map-chrono">
+    <div class="map-chrono-head"><span class="map-chrono-title">关注编年谱</span><span class="map-chrono-range">${years[0]}—${years[years.length-1]}</span></div>
+    <div class="map-chrono-scroll"><svg class="map-chrono-svg${focusClass}" width="${width}" height="${chartH}" viewBox="0 0 ${width} ${chartH}">${yearLabels}${tracks}${names}</svg></div>
   </div>`;
 }
 
-/* 点击话题卡片 → 展开该话题的笔记列表（按相关度排序，标日期） */
+/* ---- 选择落点窄条 ---- */
+function locusHTML(payload,focus){
+  const topics=payload.topics||[];const t=topics[focus.topicIdx];if(!t)return '';
+  let text='';
+  if(focus.type==='node'){const n=(t.timeline||{})[focus.year];text=`${escapeHTML(t.name)} × ${focus.year}${n?(' · '+n.count+' 条 · 当年第 '+n.rank):''}`}
+  else text=`${escapeHTML(t.name)} · ${t.count||0} 条`;
+  return `<div class="map-locus show"><span class="map-locus-text">${text}</span><button class="map-locus-clear" aria-label="清除">×</button></div>`;
+}
+
+/* ---- 话题目录行 ---- */
+function topicRowHTML(t,i,focus){
+  const yc=t.year_counts||{},years=Object.keys(yc).sort();
+  const maxC=Math.max(1,...Object.values(yc).map(Number));
+  const bars=years.map(y=>{const h=Math.max(2,Math.round(Number(yc[y])/maxC*22));return `<div class="map-year-col" title="${y} 年 ${yc[y]} 条"><div class="map-year-bar" style="height:${h}px"></div><div class="map-year-lab">${String(y).slice(2)}</div></div>`}).join('');
+  const span=t.first_date&&t.last_date?`${String(t.first_date).slice(0,4)}–${String(t.last_date).slice(0,4)}`:'';
+  const sel=focus&&focus.topicIdx===i?' selected':'';
+  const idx=('0'+(i+1)).slice(-2);
+  return `<div class="map-topic-row${sel}" data-topic-idx="${i}">
+    <div class="map-topic-idx">${idx}</div>
+    <div class="map-topic-main"><div class="map-topic-name">${escapeHTML(t.name||'未命名话题')}</div><div class="map-topic-def">${escapeHTML(t.definition||'')}</div></div>
+    <div class="map-topic-side"><div class="map-topic-meta">${t.count||0} 条 · ${span}</div><div class="map-topic-years">${bars}</div></div>
+  </div>`;
+}
+
+/* 点击：编年谱节点/轨迹/话题名 → 设焦点；话题行 → 详情；落点清除 → 清焦点 */
 mapCanvas.addEventListener('click',function(e){
-  const card=e.target.closest('.map-topic-card');
-  if(card){
-    const t=(mapTopicsCache?.topics||[])[parseInt(card.dataset.topicIdx)];
-    if(t)showTopicDetail(t);return;
-  }
+  const clear=e.target.closest('.map-locus-clear');
+  if(clear){mapFocus=null;if(mapTopicsCache)renderTopicCards(mapTopicsCache,null,null);return}
+  const node=e.target.closest('.map-chrono-node');
+  if(node){mapFocus={type:'node',topicIdx:parseInt(node.dataset.topicIdx),year:node.dataset.year};if(mapTopicsCache)renderTopicCards(mapTopicsCache,null,mapFocus);return}
+  const track=e.target.closest('.map-chrono-track,.map-chrono-track-hit,.map-chrono-name');
+  if(track){mapFocus={type:'topic',topicIdx:parseInt(track.dataset.topicIdx)};if(mapTopicsCache)renderTopicCards(mapTopicsCache,null,mapFocus);return}
+  const card=e.target.closest('.map-topic-row');
+  if(card){const t=(mapTopicsCache?.topics||[])[parseInt(card.dataset.topicIdx)];if(t)showTopicDetail(t);return}
   const back=e.target.closest('.map-topic-back');
-  if(back){if(mapTopicsCache)renderTopicCards(mapTopicsCache,null);return}
+  if(back){if(mapTopicsCache)renderTopicCards(mapTopicsCache,null,mapFocus);return}
   const note=e.target.closest('.map-topic-note');
   if(note){const id=parseInt(note.dataset.noteId);closeMap();openDetail(id);return}
 });
@@ -1531,12 +1655,46 @@ async function rebuildTopics(){
   });
   topics.sort((a,b)=>b.count-a.count);
 
+  // 6b. 计算「关注编年谱」数据：每话题 × 年份的 数量/占比/排名/事件标记
+  // 分母用「全部有向量有效笔记」的年度总量（占比才有意义：某年写得多≠话题真上升）
+  const totalByYear={};pts.forEach(p=>{const y=String(p.recorded_on||'').slice(0,4);if(y)totalByYear[y]=(totalByYear[y]||0)+1});
+  const allYears=Object.keys(totalByYear).sort();
+  topics.forEach(t=>{
+    t.timeline={};
+    allYears.forEach(y=>{
+      const cnt=t.year_counts[y]||0;
+      if(!cnt)return; // 无笔记则断点，不补零造假连续性
+      t.timeline[y]={count:cnt,share:+(cnt/(totalByYear[y]||1)).toFixed(3)};
+    });
+  });
+  // 每年按占比给话题排名（rank 1=当年最受关注）
+  allYears.forEach(y=>{
+    const ranked=topics.filter(t=>t.timeline[y]).sort((a,b)=>b.timeline[y].share-a.timeline[y].share||b.timeline[y].count-a.timeline[y].count);
+    ranked.forEach((t,i)=>{t.timeline[y].rank=i+1});
+  });
+  // 事件标记：首次出现 / 沉寂≥2年后回归 / 排名跃升≥2
+  topics.forEach(t=>{
+    const years=Object.keys(t.timeline).sort();
+    years.forEach((y,i)=>{
+      const node=t.timeline[y];node.events=[];
+      if(i===0)node.events.push('first');
+      else{
+        const gap=+y-(+years[i-1]);
+        if(gap>=3)node.events.push('revival'); // 中间断了≥2个完整年份
+        const prevRank=t.timeline[years[i-1]].rank;
+        if(prevRank!=null&&node.rank!=null&&prevRank-node.rank>=2)node.events.push('surge');
+      }
+      if(!node.events.length)delete node.events;
+    });
+  });
+
   // 6. 写回缓存（upsert 本人行）
   const {data:{user}}=await sb.auth.getUser();
-  const payload={version:1,generated_note_count:pts.length,topics};
+  const payload={version:2,generated_note_count:pts.length,years:allYears,total_by_year:totalByYear,topics};
   const {error:upErr}=await sb.from('map_cache').upsert({owner_id:user.id,source_note_count:pts.length,generated_at:new Date().toISOString(),payload},{onConflict:'owner_id'});
   if(upErr)throw upErr;
   mapTopicsCache=payload;
+  mapFocus=null;
   renderTopicCards(payload,new Date().toISOString());
   showToast('已生成 '+topics.length+' 个话题');
 }

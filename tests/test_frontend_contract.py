@@ -270,12 +270,22 @@ class FrontendContractTests(unittest.TestCase):
 
     def test_cognitive_map_renders_topic_cards_with_time_distribution(self):
         self.assertIn('function renderTopicCards(', HTML)
-        self.assertIn('function topicCardHTML(', HTML)
+        self.assertIn('function topicRowHTML(', HTML)  # 目录式话题行
         self.assertIn('year_counts', HTML)  # 年度分布
-        self.assertIn('map-topic-card', HTML)
-        self.assertIn('function showTopicDetail(', HTML)  # 点卡片看相关笔记
-        self.assertIn('可能被你忽略的反复话题', HTML)
+        self.assertIn('map-topic-row', HTML)
+        self.assertIn('function showTopicDetail(', HTML)  # 点话题看相关笔记
         self.assertIn('function rebuildTopics(', HTML)
+
+    def test_cognitive_map_chronicle(self):
+        # 关注编年谱：bump chart（横轴年份/纵轴排名），砖红焦点
+        self.assertIn('function chronicleHTML(', HTML)
+        self.assertIn('timeline', HTML)  # 每话题×年份 数量/占比/排名/事件
+        self.assertIn('rank_in_year' if 'rank_in_year' in HTML else 'rank', HTML)
+        self.assertIn('map-chrono-svg', HTML)
+        self.assertIn('function locusHTML(', HTML)  # 选择落点窄条
+        self.assertIn('revival', HTML)  # 沉寂回归事件
+        self.assertIn('surge', HTML)  # 跃升事件
+        self.assertIn('--brick:#A65D57', HTML)  # 砖红焦点色
 
     def test_cognitive_map_llm_key_not_in_frontend(self):
         # 安全契约：LLM 密钥绝不进前端，命名走 Edge Function
