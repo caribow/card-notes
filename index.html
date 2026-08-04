@@ -467,7 +467,7 @@ input,textarea{font-family:inherit;outline:none;border:none}
   body{overflow-y:auto}
   .app.authed{display:grid;grid-template-columns:248px minmax(0,640px);column-gap:28px;align-items:start;width:calc(100% - 40px);max-width:916px;margin:0 auto;padding:32px 0 80px;height:auto;min-height:100vh;overflow:visible}
   .menu-btn{display:none}
-  .sidebar{position:relative;top:auto;height:auto;max-height:calc(100vh - 32px);margin:0;transform:none !important;border-radius:2px;overflow:hidden;box-shadow:0 2px 4px rgba(0,0,0,.14),0 12px 32px rgba(0,0,0,.12)}
+  .sidebar{position:relative;top:auto;height:calc(100vh - 32px);max-height:calc(100vh - 32px);margin:0;transform:none !important;border-radius:2px;overflow:hidden;box-shadow:0 2px 4px rgba(0,0,0,.14),0 12px 32px rgba(0,0,0,.12)}
   .app.sidebar-collapsed .sidebar{margin-left:0}
   .overlay{display:none !important}
   .main{width:100%;min-height:100vh}
@@ -549,11 +549,12 @@ input,textarea{font-family:inherit;outline:none;border:none}
 .insight-rank{position:absolute;left:-6px;top:-6px;z-index:3;font-family:var(--mono);font-size:10px;font-weight:600;color:#fff;background:#4A4A4A;min-width:20px;height:20px;border-radius:10px;display:flex;align-items:center;justify-content:center;padding:0 5px;box-shadow:0 1px 3px rgba(0,0,0,.2)}
 .insight-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:50px 20px;color:var(--text-3);gap:10px;text-align:center}
 .insight-empty p{font-family:var(--mono);font-size:12px;letter-spacing:.5px}
-/* 批量选择：左侧选择列 */
-.insight-row{display:grid;grid-template-columns:28px minmax(0,1fr);gap:6px;align-items:start;margin-bottom:2px}
+/* 批量选择：默认单卡片整宽无圆圈；选择模式下点卡片本身，用边框+底色提示选中 */
+.insight-row{display:block;margin-bottom:2px}
 .insight-card-wrap{position:relative;min-width:0}
-.insight-check{width:24px;height:24px;margin-top:12px;border:1px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;color:transparent;background:var(--bg);transition:background .15s,border-color .15s,color .15s;cursor:pointer}
-.insight-check.on{color:#fff;background:#4A4A4A;border-color:#4A4A4A}
+.insight-mask.selecting .insight-row .card{cursor:pointer}
+.insight-mask.selecting .insight-row.selected .card{border-color:#4A4A4A;box-shadow:0 0 0 1.5px #4A4A4A,0 2px 8px rgba(0,0,0,.1);background:var(--bg-soft)}
+.insight-check{display:none}
 /* 批量操作条 */
 .insight-actionbar{position:fixed;left:50%;bottom:18px;transform:translate(-50%,80px);z-index:646;display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--border);border-radius:24px;box-shadow:0 8px 28px rgba(0,0,0,.16);padding:6px 8px;transition:transform .25s cubic-bezier(.4,0,.2,1)}
 .insight-actionbar.show{transform:translate(-50%,0)}
@@ -620,8 +621,9 @@ input,textarea{font-family:inherit;outline:none;border:none}
 /* ============ WANDER（随机漫步） ============ */
 .wander-mask{position:fixed;inset:0;z-index:244;background:var(--bg);transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden}
 .wander-mask.show{transform:translateX(0)}
-.wander-topbar{height:var(--topbar-h);flex-shrink:0;display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid var(--border-soft)}
-.wander-back{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text-2);padding:6px 10px;border-radius:7px;transition:background .15s,color .15s}
+.wander-topbar{height:var(--topbar-h);flex-shrink:0;padding:0;border-bottom:1px solid var(--border-soft)}
+.wander-topbar-inner{width:100%;max-width:640px;height:100%;margin:0 auto;padding:0 20px;display:flex;align-items:center;gap:8px}
+.wander-back{flex-shrink:0;display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text-2);padding:6px 10px;border-radius:7px;transition:background .15s,color .15s}
 .wander-back:hover{background:var(--hover-bg);color:var(--text)}
 .wander-title{font-family:var(--mono);font-size:11px;color:var(--text-3);letter-spacing:2px;flex:1}
 .wander-count{font-family:var(--mono);font-size:11px;color:var(--text-2)}
@@ -661,7 +663,7 @@ input,textarea{font-family:inherit;outline:none;border:none}
 .wander-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--text-3);text-align:center;padding:40px}
 .wander-empty p{font-family:var(--mono);font-size:12px;letter-spacing:.5px}
 @media(max-width:768px){
-  .wander-topbar{padding:0 10px}
+  .wander-topbar-inner{padding:0 14px}
   .wander-body{padding:16px 14px 0}
   .wander-deck{height:min(58vh,520px)}
   .wander-card{padding:20px 18px 16px;border-radius:18px}
@@ -829,9 +831,11 @@ input,textarea{font-family:inherit;outline:none;border:none}
 <!-- ===== WANDER（随机漫步） ===== -->
 <div class="wander-mask" id="wanderMask">
   <div class="wander-topbar">
-    <button class="wander-back" id="wanderBack"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg><span>返回</span></button>
-    <div class="wander-title">随机漫步</div>
-    <span class="wander-count" id="wanderCount"></span>
+    <div class="wander-topbar-inner">
+      <button class="wander-back" id="wanderBack"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg><span>返回</span></button>
+      <div class="wander-title">随机漫步</div>
+      <span class="wander-count" id="wanderCount"></span>
+    </div>
   </div>
   <div class="wander-body">
     <div class="wander-deck" id="wanderDeck"></div>
@@ -864,7 +868,8 @@ input,textarea{font-family:inherit;outline:none;border:none}
       <button class="insight-back" id="insightBack"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg><span>返回</span></button>
       <div class="insight-title" id="insightTitle">洞察</div>
       <span class="insight-count" id="insightCount"></span>
-      <button class="insight-select-all" id="insightSelectAll">全选</button>
+      <button class="insight-select-all" id="insightSelectAll" style="display:none">全选</button>
+      <button class="insight-batch-entry" id="insightBatchEntry">批量打标签</button>
     </div>
   </div>
   <div class="insight-body" id="insightBody"></div>
@@ -1104,18 +1109,25 @@ function renderPagination(totalPages,restCount){
   if(totalPages<=1){bar.innerHTML='';bar.style.display='none';return}
   bar.style.display='flex';
   bar.innerHTML=`
+    <button class="page-btn page-home" id="pageHome" ${currentPage<=1?'disabled':''} aria-label="回到首页"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>首页</button>
     <button class="page-btn" id="pagePrev" ${currentPage<=1?'disabled':''} aria-label="上一页"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>上一页</button>
     <span class="page-num">${currentPage} / ${totalPages}</span>
     <button class="page-btn" id="pageNext" ${currentPage>=totalPages?'disabled':''} aria-label="下一页">下一页<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></button>
-    <button class="page-top" id="pageTop" title="回到顶部" aria-label="回到顶部"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>`;
+    <button class="page-top" id="pageBottom" title="回到底部" aria-label="回到底部"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg></button>`;
+  document.getElementById('pageHome').onclick=()=>{if(currentPage>1){currentPage=1;render();scrollContentTop()}};
   document.getElementById('pagePrev').onclick=()=>{if(currentPage>1){currentPage--;render();scrollContentTop()}};
   document.getElementById('pageNext').onclick=()=>{if(currentPage<totalPages){currentPage++;render();scrollContentTop()}};
-  document.getElementById('pageTop').onclick=()=>{scrollContentTop()};
+  document.getElementById('pageBottom').onclick=()=>{scrollContentBottom()};
 }
 function scrollContentTop(){
   const c=document.getElementById('content');
   if(window.innerWidth>768){window.scrollTo({top:0,behavior:'smooth'})}
   else{c.scrollTo({top:0,behavior:'smooth'})}
+}
+function scrollContentBottom(){
+  const c=document.getElementById('content');
+  if(window.innerWidth>768){window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})}
+  else{c.scrollTo({top:c.scrollHeight,behavior:'smooth'})}
 }
 function goToPage(p){currentPage=p;render()}
 function inputCardHTML(){
@@ -1706,10 +1718,10 @@ async function openInsight(id){
   renderInsightList(n,insightRelated);
 }
 
-function insightCheckHTML(id){return `<button class="insight-check${insightSelected.has(id)?' on':''}" data-check-id="${Number(id)}" aria-label="选择"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></button>`}
+function insightCheckHTML(id){return ''} // 不再用圆圈，选择靠卡片本身
 
 function renderInsightSource(n){
-  insightBody.innerHTML=`<div class="insight-inner"><div class="insight-source-kicker">源笔记</div><div class="insight-source"><div class="insight-row" data-note-id="${Number(n.id)}">${insightCheckHTML(n.id)}<div class="insight-card-wrap">${cardHTML(n)}</div></div></div><div class="insight-list-kicker">关联笔记</div><div id="insightList"></div></div>`;
+  insightBody.innerHTML=`<div class="insight-inner"><div class="insight-source-kicker">源笔记</div><div class="insight-source"><div class="insight-row${insightSelected.has(n.id)?' selected':''}" data-note-id="${Number(n.id)}"><div class="insight-card-wrap">${cardHTML(n)}</div></div></div><div class="insight-list-kicker">关联笔记</div><div id="insightList"></div></div>`;
 }
 
 function renderInsightList(source,related){
@@ -1718,21 +1730,38 @@ function renderInsightList(source,related){
   if(fresh){const src=insightBody.querySelector('.insight-source .insight-card-wrap');if(src)src.innerHTML=cardHTML(fresh)}
   document.getElementById('insightCount').textContent=related.length+' 条关联';
   if(!related.length){list.innerHTML='<div class="insight-empty"><p>这条笔记还没有找到足够近的邻居</p><p style="font-size:11px">多写几条，或等待向量计算完成</p></div>';return}
-  list.innerHTML=related.map((n,i)=>`<div class="insight-row" data-note-id="${Number(n.id)}">${insightCheckHTML(n.id)}<div class="insight-card-wrap"><span class="insight-rank">${i+1}</span>${cardHTML(n)}</div></div>`).join('');
+  list.innerHTML=related.map((n,i)=>`<div class="insight-row${insightSelected.has(n.id)?' selected':''}" data-note-id="${Number(n.id)}"><div class="insight-card-wrap"><span class="insight-rank">${i+1}</span>${cardHTML(n)}</div></div>`).join('');
 }
 
+let insightSelecting=false;
 function updateInsightActionbar(){
   const n=insightSelected.size;
   document.getElementById('insightSelCount').textContent='已选 '+n;
-  document.getElementById('insightActionbar').classList.toggle('show',n>0);
+  document.getElementById('insightActionbar').classList.toggle('show',insightSelecting&&n>0);
 }
+function setInsightSelecting(on){
+  insightSelecting=on;
+  insightMask.classList.toggle('selecting',on);
+  document.getElementById('insightSelectAll').style.display=on?'':'none';
+  document.getElementById('insightBatchEntry').textContent=on?'完成':'批量打标签';
+  document.getElementById('insightBatchEntry').classList.toggle('active',on);
+  if(!on){insightSelected.clear();insightBody.querySelectorAll('.insight-row.selected').forEach(r=>r.classList.remove('selected'))}
+  updateInsightActionbar();
+}
+document.getElementById('insightBatchEntry').addEventListener('click',()=>{
+  if(!insightSelecting){setInsightSelecting(true)}
+  else{
+    // 「完成」：有选中则打开打标签对话框，无选中则退出选择模式
+    if(insightSelected.size){document.getElementById('insightBatchTagBtn').click()}
+    else setInsightSelecting(false);
+  }
+});
 document.getElementById('insightSelectAll').addEventListener('click',()=>{
   const allIds=[insightSourceId,...insightRelated.map(n=>n.id)].filter(Boolean);
   const allSelected=allIds.every(id=>insightSelected.has(id));
   if(allSelected){allIds.forEach(id=>insightSelected.delete(id))}
   else{allIds.forEach(id=>insightSelected.add(id))}
-  // 重新渲染复选框状态
-  insightBody.querySelectorAll('.insight-check').forEach(c=>{const id=parseInt(c.dataset.checkId);c.classList.toggle('on',insightSelected.has(id))});
+  insightBody.querySelectorAll('.insight-row').forEach(r=>{const id=parseInt(r.dataset.noteId);r.classList.toggle('selected',insightSelected.has(id))});
   document.getElementById('insightSelectAll').textContent=allSelected?'全选':'取消全选';
   updateInsightActionbar();
 });
@@ -1745,18 +1774,26 @@ function closeInsight(){
 document.getElementById('insightBack').addEventListener('click',closeInsight);
 
 insightBody.addEventListener('click',function(e){
-  const check=e.target.closest('.insight-check');
-  if(check){e.stopPropagation();const id=parseInt(check.dataset.checkId);insightSelected.has(id)?insightSelected.delete(id):insightSelected.add(id);check.classList.toggle('on');updateInsightActionbar();return}
   const menuBtn=e.target.closest('.card-menu-btn');
   if(menuBtn){e.stopPropagation();e.preventDefault();showNoteMenu(menuBtn,parseInt(menuBtn.dataset.noteId));return}
   const tag=e.target.closest('.card-tag');
   if(tag){e.stopPropagation();e.preventDefault();closeInsightAll();selectTag(tag.dataset.tag);return}
   const card=e.target.closest('.card');
-  if(card&&card.dataset.id)openDetail(parseInt(card.dataset.id));
+  if(!card||!card.dataset.id)return;
+  const id=parseInt(card.dataset.id);
+  if(insightSelecting){
+    // 选择模式：点卡片本身切换选中
+    e.stopPropagation();
+    const row=card.closest('.insight-row');
+    insightSelected.has(id)?insightSelected.delete(id):insightSelected.add(id);
+    if(row)row.classList.toggle('selected',insightSelected.has(id));
+    updateInsightActionbar();return;
+  }
+  openDetail(id);
 });
 function closeInsightAll(){
   insightStack.length=0;insightMask.classList.remove('show');insightSourceId=null;
-  insightRelated=[];insightSelected.clear();updateInsightActionbar();
+  insightRelated=[];insightSelected.clear();setInsightSelecting(false);
   document.getElementById('insightSelectAll').textContent='全选';
   if(insightReturnToWander){insightReturnToWander=false;wanderMask.classList.add('show')}
 }
@@ -1813,8 +1850,9 @@ document.getElementById('batchTagSubmit').addEventListener('click',async()=>{
     if(insightSourceId!==null){const src=notes.find(n=>n.id===insightSourceId);if(src){renderInsightSource(src);renderInsightList(src,insightRelated)}}
     const failedIds=ids.filter(id=>{const r=(rows||[]).find(x=>x.id===id);return r&&(mergeTags(r.tags,newTags).length>(r.tags||[]).length)&&!notes.find(n=>n.id===id&&newTags.every(t=>n.tags.includes(t)))});
     insightSelected.clear();failedIds.forEach(id=>insightSelected.add(id));
-    insightBody.querySelectorAll('.insight-check').forEach(c=>{const id=parseInt(c.dataset.checkId);c.classList.toggle('on',insightSelected.has(id))});
+    insightBody.querySelectorAll('.insight-row').forEach(r=>{const id=parseInt(r.dataset.noteId);r.classList.toggle('selected',insightSelected.has(id))});
     updateInsightActionbar();
+    if(fail===0)setInsightSelecting(false); // 全部成功则退出选择模式
     if(fail>0)showToast(`成功 ${ok} 条，${fail} 条失败，请重试`);
     else if(ok>0)showToast(`已为 ${ok} 条笔记添加标签`);
     else if(nochange>0)showToast('所选笔记已有这些标签');
