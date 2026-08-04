@@ -199,14 +199,13 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("if(inTrash){it.hidden=(a!=='restore')}", HTML)
         self.assertIn("else{it.hidden=(a==='restore')}", HTML)
 
-    def test_trash_entry_is_below_tag_tree_not_wander(self):
-        # 回收站在标签树下方（与认知地图/随机漫步同级的条目，但不随标签滑动）
+    def test_trash_entry_is_below_wander_with_map_entries(self):
+        # 回收站与认知地图/随机漫步同级，放在随机漫步下方、标签树上方
         wander_pos = HTML.index('id="wanderEntry"')
-        tree_pos = HTML.index('id="tree"')
         trash_pos = HTML.index('id="trashEntry"')
-        self.assertLess(wander_pos, tree_pos)
-        self.assertLess(tree_pos, trash_pos)
-        self.assertIn('.side-trash-entry', HTML)
+        tree_pos = HTML.index('id="tree"')
+        self.assertLess(wander_pos, trash_pos)
+        self.assertLess(trash_pos, tree_pos)
 
     def test_wander_fullscreen_and_return_to_wander_after_edit(self):
         # 全屏=卡片右下角「展开」用详情页放大看，返回回漫步（不用浏览器 requestFullscreen）
