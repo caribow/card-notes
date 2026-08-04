@@ -522,7 +522,10 @@ input,textarea{font-family:inherit;outline:none;border:none}
 .map-chrono-svg.has-focus .map-chrono-name.focus{opacity:1;fill:var(--brick-deep);font-weight:600}
 .map-chrono-svg.has-focus .map-chrono-node{opacity:.3}
 .map-chrono-svg.has-focus .map-chrono-node.focus{opacity:1;fill:var(--brick);stroke:var(--brick-deep)}
-.map-chrono-event{stroke:var(--brick);fill:none}
+/* 事件标记：默认灰、不挡点击，仅焦点话题转砖红 */
+.map-chrono-event{stroke:#B8B2AE;fill:none;pointer-events:none;transition:stroke .15s,opacity .2s}
+.map-chrono-svg.has-focus .map-chrono-event{opacity:.16}
+.map-chrono-svg.has-focus .map-chrono-event.focus{opacity:1;stroke:var(--brick)}
 /* ---- 选择落点窄条（仅筛选时出现，淡红底） ---- */
 .map-locus{display:none;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--brick-deep);background:var(--brick-bg);border:1px solid var(--brick-line);border-radius:3px;padding:8px 12px;margin:12px 0 16px}
 .map-locus.show{display:flex}
@@ -562,6 +565,12 @@ input,textarea{font-family:inherit;outline:none;border:none}
 @media(max-width:768px){
   .map-topbar{padding:0 10px}.map-topbar-inner{gap:4px}.map-title{display:none}.map-count{max-width:112px;overflow:hidden;text-overflow:ellipsis}
   .map-topics-inner{padding:18px 14px 50px}
+  /* 话题目录移动端：信息一行、年度条第二行，防溢出 */
+  .map-topic-row{flex-wrap:wrap;gap:8px 12px}
+  .map-topic-main{flex:1 1 calc(100% - 40px)}
+  .map-topic-side{flex:1 1 100%;display:flex;align-items:flex-end;justify-content:space-between;gap:10px;text-align:left}
+  .map-topic-years{max-width:60%;overflow-x:auto;margin-top:0;justify-content:flex-start}
+  .map-chrono-scroll{overflow-x:auto}
 }
 
 /* ============ INSIGHT PAGE ============ */
@@ -1449,8 +1458,6 @@ async function openMap(){
     mapTopicsCache=data.payload;
     mapFocus=null;
     renderTopicCards(data.payload,data.generated_at);
-    // 旧版缓存无编年谱数据，温和提示重建
-    if(!data.payload.years){mapCount.textContent=(data.payload.topics||[]).length+' 个话题 · 点「重建话题」可看编年谱'}
   }catch(e){console.error(e);mapCanvas.innerHTML='<div class="map-empty"><p>读取失败</p><p style="font-size:11px">'+escapeHTML(String(e.message||e))+'</p></div>'}
 }
 function closeMap(){mapMask.classList.remove('show')}
@@ -1459,7 +1466,8 @@ function closeMap(){mapMask.classList.remove('show')}
 let mapFocus=null; // 当前认知落点（{type:'topic'|'node',topicIdx,year?}）
 function renderTopicCards(payload,generatedAt,focus){
   const topics=payload.topics||[];
-  mapCount.textContent=topics.length+' 个话题';
+  // 旧版缓存无编年谱数据：每次渲染都提示，不会返回详情后消失
+  mapCount.textContent=topics.length+' 个话题'+(payload.years?'':' · 点「重建话题」可看编年谱');
   const gen=generatedAt?('更新于 '+String(generatedAt).slice(0,10)):'';
   const years=payload.years||[];
   const totalNotes=payload.generated_note_count||0;
@@ -1488,40 +1496,26 @@ function chronicleHTML(payload,focus){
   const yearIdx={};years.forEach((y,i)=>yearIdx[y]=i);
   const focusClass=focusIdx!=null?' has-focus':'';
 
-  // 年份刻度（底部）+ 年度总量细刻度
+  // 年份刻度（底部）
   const yearLabels=years.map((y,i)=>`<text class="map-chrono-year" x="${X(i)}" y="${chartH-8}">${y}</text>`).join('');
-  const tracks=topics.map((t,ti)=>{
-    const tl=t.timeline||{};
-    const ys=Object.keys(tl).sort();
-    if(!ys.length)return '';
-    const isFocus=focusIdx===ti;
-    // 分段：相邻年份连续就连线，断开（中间无笔记）则分段
-    let segs=[],cur=[];
-    ys.forEach(y=>{const i=yearIdx[y];if(cur.length&&i-yearIdx[cur[cur.length-1]]>1){segs.push(cur);cur=[]}cur.push(y)});
-    if(cur.length)segs.push(cur);
-    const paths=segs.map(seg=>{
-      if(seg.length===1)return ''; // 单点不画线
-      const d=seg.map((y,k)=>(k?'L':'M')+X(yearIdx[y])+' '+Y(tl[y].rank)).join(' ');
-      return `<path class="map-chrono-track${isFocus?' focus':''}" data-topic-idx="${ti}" d="${d}"/>`;
-    }).join('');
-    const hitPath=segs.filter(s=>s.length>1).map(seg=>{
-      const d=seg.map((y,k)=>(k?'L':'M')+X(yearIdx[y])+' '+Y(tl[y].rank)).join(' ');
-      return `<path class="map-chrono-track-hit" data-topic-idx="${ti}" d="${d}"/>`;
-    }).join('');
-    // 节点：大小=当年数量，空心=仅1条；事件标记
-    const nodes=ys.map(y=>{
-      const n=tl[y],r=nodeR(n.count),cx=X(yearIdx[y]),cy=Y(n.rank);
-      const hollow=n.count<=1?' hollow':'';
-      let evt='';
-      if(n.events){
-        if(n.events.includes('revival'))evt=`<circle class="map-chrono-event" cx="${cx}" cy="${cy}" r="${r+3.5}" stroke-width="1"/>`;
-        else if(n.events.includes('surge'))evt=`<path class="map-chrono-event" d="M${cx-4} ${cy+r+5} L${cx} ${cy+r+1} L${cx+4} ${cy+r+5}" stroke-width="1.2"/>`;
-      }
-      return `${evt}<circle class="map-chrono-node${hollow}${isFocus?' focus':''}" data-topic-idx="${ti}" data-year="${y}" cx="${cx}" cy="${cy}" r="${r}"><title>${y} · ${escapeHTML(t.name)} · ${n.count} 条 · 当年第 ${n.rank}</title></circle>`;
-    }).join('');
-    return paths+hitPath+nodes;
-  }).join('');
-  // 左侧话题名（取该话题最近一年排名位置的 Y）
+  // 轨迹分段（按日历年，跨年断开）
+  const segOf=t=>{const ys=Object.keys(t.timeline||{}).sort();let segs=[],cur=[];ys.forEach(y=>{if(cur.length&&(+y)-(+cur[cur.length-1])>1){segs.push(cur);cur=[]}cur.push(y)});if(cur.length)segs.push(cur);return segs};
+  const segPath=(t,seg)=>seg.map((y,k)=>(k?'L':'M')+X(yearIdx[y])+' '+Y(t.timeline[y].rank)).join(' ');
+  // 全局分层输出，保证节点在 hitPath 上层、事件标记不挡点击
+  const visibleTracks=topics.map((t,ti)=>segOf(t).filter(s=>s.length>1).map(seg=>`<path class="map-chrono-track${focusIdx===ti?' focus':''}" data-topic-idx="${ti}" d="${segPath(t,seg)}"/>`).join('')).join('');
+  const hitTracks=topics.map((t,ti)=>segOf(t).filter(s=>s.length>1).map(seg=>`<path class="map-chrono-track-hit" data-topic-idx="${ti}" d="${segPath(t,seg)}"/>`).join('')).join('');
+  const eventMarks=topics.map((t,ti)=>{const tl=t.timeline||{};return Object.keys(tl).sort().map(y=>{
+    const n=tl[y];if(!n.events)return '';
+    const r=nodeR(n.count),cx=X(yearIdx[y]),cy=Y(n.rank);let evt='';
+    if(n.events.includes('revival'))evt+=`<circle class="map-chrono-event${focusIdx===ti?' focus':''}" cx="${cx}" cy="${cy}" r="${r+3.5}" stroke-width="1"/>`;
+    if(n.events.includes('surge'))evt+=`<path class="map-chrono-event${focusIdx===ti?' focus':''}" d="M${cx-4} ${cy+r+5} L${cx} ${cy+r+1} L${cx+4} ${cy+r+5}" stroke-width="1.2"/>`;
+    return evt;
+  }).join('')}).join('');
+  const nodeMarks=topics.map((t,ti)=>{const tl=t.timeline||{};return Object.keys(tl).sort().map(y=>{
+    const n=tl[y],r=nodeR(n.count),cx=X(yearIdx[y]),cy=Y(n.rank);
+    const hollow=n.count<=1?' hollow':'';
+    return `<circle class="map-chrono-node${hollow}${focusIdx===ti?' focus':''}" data-topic-idx="${ti}" data-year="${y}" cx="${cx}" cy="${cy}" r="${r}"><title>${y} · ${escapeHTML(t.name)} · ${n.count} 条 · 当年第 ${n.rank}</title></circle>`;
+  }).join('')}).join('');
   const names=topics.map((t,ti)=>{
     const tl=t.timeline||{},ys=Object.keys(tl).sort();if(!ys.length)return '';
     const lastY=ys[ys.length-1],isFocus=focusIdx===ti;
@@ -1530,7 +1524,7 @@ function chronicleHTML(payload,focus){
 
   return `<div class="map-chrono">
     <div class="map-chrono-head"><span class="map-chrono-title">关注编年谱</span><span class="map-chrono-range">${years[0]}—${years[years.length-1]}</span></div>
-    <div class="map-chrono-scroll"><svg class="map-chrono-svg${focusClass}" width="${width}" height="${chartH}" viewBox="0 0 ${width} ${chartH}">${yearLabels}${tracks}${names}</svg></div>
+    <div class="map-chrono-scroll"><svg class="map-chrono-svg${focusClass}" width="${width}" height="${chartH}" viewBox="0 0 ${width} ${chartH}">${yearLabels}${visibleTracks}${hitTracks}${eventMarks}${nodeMarks}${names}</svg></div>
   </div>`;
 }
 
@@ -1611,7 +1605,7 @@ async function rebuildTopics(){
     if(error)throw error;rows.push(...(data||[]));
     if(!data||data.length<PAGE)break;
   }
-  const pts=rows.map(r=>({id:r.id,text:r.text,recorded_on:r.recorded_on,vec:normalizeVec(parseEmbedding(r.embedding)||[])}))
+  const pts=rows.map(r=>({id:r.id,text:r.text,date:(r.recorded_on||String(r.created_at||'').slice(0,10)),vec:normalizeVec(parseEmbedding(r.embedding)||[])}))
     .filter(p=>p.vec.length&&isSubstantiveMapNote(notes.find(n=>n.id===p.id)||{text:p.text,tags:[]}));
   if(pts.length<20)throw new Error('可分析笔记太少（'+pts.length+' 条）');
   setMapProgress('聚类中（'+pts.length+' 条笔记）…');
@@ -1632,10 +1626,10 @@ async function rebuildTopics(){
     const scored=c.members.map(m=>({m,s:dotVec(m.vec,centroid)})).sort((a,b)=>b.s-a.s);
     const picks=[],used=new Set();
     scored.slice(0,3).forEach(x=>{if(!used.has(x.m.id)){picks.push(x.m);used.add(x.m.id)}});
-    const byYear={};c.members.forEach(m=>{const y=String(m.recorded_on||'').slice(0,4);(byYear[y]=byYear[y]||[]).push(m)});
+    const byYear={};c.members.forEach(m=>{const y=String(m.date||'').slice(0,4);(byYear[y]=byYear[y]||[]).push(m)});
     Object.keys(byYear).sort().forEach(y=>{const m=byYear[y][0];if(picks.length<6&&!used.has(m.id)){picks.push(m);used.add(m.id)}});
     scored.slice(-2).forEach(x=>{if(picks.length<8&&!used.has(x.m.id)){picks.push(x.m);used.add(x.m.id)}});
-    return {cluster_id:c.cid,_members:c.members,_centroid:centroid,samples:picks.map(m=>({date:String(m.recorded_on||'').slice(0,10),excerpt:stripSemanticNoise(m.text).slice(0,120)}))};
+    return {cluster_id:c.cid,_members:c.members,_centroid:centroid,samples:picks.map(m=>({date:String(m.date||'').slice(0,10),excerpt:stripSemanticNoise(m.text).slice(0,120)}))};
   });
 
   const {data:fnData,error:fnErr}=await sb.functions.invoke('name-topics',{body:{clusters:clusterInputs.map(({cluster_id,samples})=>({cluster_id,samples}))}});
@@ -1648,16 +1642,16 @@ async function rebuildTopics(){
     const r=named[c.cid];
     if(!r||!r.valid||!r.name)return;
     const centroid=clusterInputs[idx]._centroid;
-    const members=c.members.map(m=>({id:m.id,recorded_on:m.recorded_on,sim:dotVec(m.vec,centroid)})).sort((a,b)=>b.sim-a.sim);
+    const members=c.members.map(m=>({id:m.id,date:m.date,sim:dotVec(m.vec,centroid)})).sort((a,b)=>b.sim-a.sim);
     const year_counts={};let first=null,last=null;
-    members.forEach(m=>{const y=String(m.recorded_on||'').slice(0,4);if(y){year_counts[y]=(year_counts[y]||0)+1;const d=String(m.recorded_on||'');if(!first||d<first)first=d;if(!last||d>last)last=d}});
+    members.forEach(m=>{const y=String(m.date||'').slice(0,4);if(y){year_counts[y]=(year_counts[y]||0)+1;const d=String(m.date||'');if(!first||d<first)first=d;if(!last||d>last)last=d}});
     topics.push({name:r.name,definition:r.definition||'',count:members.length,note_ids:members.map(m=>m.id),similarities:members.map(m=>+m.sim.toFixed(3)),first_date:first,last_date:last,year_counts});
   });
   topics.sort((a,b)=>b.count-a.count);
 
   // 6b. 计算「关注编年谱」数据：每话题 × 年份的 数量/占比/排名/事件标记
   // 分母用「全部有向量有效笔记」的年度总量（占比才有意义：某年写得多≠话题真上升）
-  const totalByYear={};pts.forEach(p=>{const y=String(p.recorded_on||'').slice(0,4);if(y)totalByYear[y]=(totalByYear[y]||0)+1});
+  const totalByYear={};pts.forEach(p=>{const y=String(p.date||'').slice(0,4);if(y)totalByYear[y]=(totalByYear[y]||0)+1});
   const allYears=Object.keys(totalByYear).sort();
   topics.forEach(t=>{
     t.timeline={};

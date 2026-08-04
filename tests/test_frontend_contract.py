@@ -287,6 +287,27 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn('surge', HTML)  # 跃升事件
         self.assertIn('--brick:#A65D57', HTML)  # 砖红焦点色
 
+    def test_chronicle_uses_effective_date_fallback(self):
+        # Bug1 回归：recorded_on 为空的笔记用 created_at 兜底，统一进编年谱
+        self.assertIn("r.recorded_on||String(r.created_at||'').slice(0,10)", HTML)
+        self.assertIn('date:(r.recorded_on', HTML)
+
+    def test_chronicle_segments_by_calendar_year(self):
+        # Bug2 回归：断点按日历年判断（+y），不按全局数组下标，不错误跨过空年
+        self.assertIn("(+y)-(+cur[cur.length-1])>1", HTML)
+
+    def test_chronicle_event_marks_not_blocking_and_grey_by_default(self):
+        # Bug4/5 回归：事件标记 pointer-events:none + 默认灰（不抢占焦点红）
+        self.assertIn('.map-chrono-event{stroke:#B8B2AE;fill:none;pointer-events:none', HTML)
+        self.assertIn('map-chrono-event.focus{opacity:1;stroke:var(--brick)}', HTML)
+
+    def test_chronicle_layered_rendering_nodes_on_top(self):
+        # Bug3 回归：全局分层渲染，节点在 hitPath 上层，顺序 visible→hit→event→node
+        self.assertIn('visibleTracks', HTML)
+        self.assertIn('hitTracks', HTML)
+        self.assertIn('nodeMarks', HTML)
+        self.assertIn('${visibleTracks}${hitTracks}${eventMarks}${nodeMarks}', HTML)
+
     def test_cognitive_map_llm_key_not_in_frontend(self):
         # 安全契约：LLM 密钥绝不进前端，命名走 Edge Function
         self.assertNotIn('deepseek', HTML.lower())  # 前端不出现模型名/密钥
