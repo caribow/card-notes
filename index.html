@@ -1483,16 +1483,27 @@ function chronicleHTML(payload,focus){
   if(!years.length||!topics.length)return '';
   const focusIdx=focus&&focus.type==='topic'?focus.topicIdx:(focus&&focus.type==='node'?focus.topicIdx:null);
   // 布局参数
-  const nameW=118,topPad=34,bottomPad=30,leftPad=6,rightPad=14;
-  const maxRank=Math.max(...topics.map(t=>Math.max(...Object.values(t.timeline||{}).map(n=>n.rank||1),1)),1);
+  const nameW=140,topPad=34,bottomPad=30,leftPad=6,rightPad=14;
+  const minNameGap=16; // 12px 字号的最小行距
+  const activeNameCount=topics.filter(t=>Object.keys(t.timeline||{}).length).length;
+  const maxRank=Math.max(...topics.map(t=>Math.max(...Object.values(t.timeline||{}).map(n=>Number(n.rank)||1),1)),1);
   const yearGap=Math.max(72,Math.min(150,Math.floor(560/Math.max(1,years.length-1))||150));
   const width=leftPad+nameW+yearGap*Math.max(1,years.length-1)+rightPad;
-  const rowH=Math.min(30,Math.max(20,Math.floor(250/Math.max(1,maxRank))));
-  const chartH=topPad+rowH*Math.max(1,maxRank-1)+bottomPad;
+
+  // 排名轨迹保持原有 20–30px 基础行距；话题较多或排名退化时，为名字列补足高度
+  const baseRowH=Math.min(30,Math.max(20,Math.floor(250/Math.max(1,maxRank))));
+  const rankSpan=baseRowH*Math.max(0,maxRank-1);
+  const nameSpan=minNameGap*Math.max(0,activeNameCount-1);
+  const plotSpan=Math.max(rankSpan,nameSpan);
+  const rowH=maxRank>1?plotSpan/(maxRank-1):0;
+  const chartH=topPad+plotSpan+bottomPad;
+
   const maxCount=Math.max(1,...topics.flatMap(t=>Object.values(t.timeline||{}).map(n=>n.count||0)));
   const nodeR=c=>Math.max(3,Math.min(9,Math.round(Math.sqrt(c)/Math.sqrt(maxCount)*9))); // sqrt 压缩，避免高产年压倒
   const X=i=>leftPad+nameW+i*yearGap;
-  const Y=rank=>topPad+(rank-1)*rowH;
+  const Y=rank=>maxRank>1
+    ?topPad+((Number(rank)||1)-1)*rowH
+    :topPad+plotSpan/2;
   const yearIdx={};years.forEach((y,i)=>yearIdx[y]=i);
   const focusClass=focusIdx!=null?' has-focus':'';
 
@@ -1516,10 +1527,37 @@ function chronicleHTML(payload,focus){
     const hollow=n.count<=1?' hollow':'';
     return `<circle class="map-chrono-node${hollow}${focusIdx===ti?' focus':''}" data-topic-idx="${ti}" data-year="${y}" cx="${cx}" cy="${cy}" r="${r}"><title>${y} · ${escapeHTML(t.name)} · ${n.count} 条 · 当年第 ${n.rank}</title></circle>`;
   }).join('')}).join('');
-  const names=topics.map((t,ti)=>{
-    const tl=t.timeline||{},ys=Object.keys(tl).sort();if(!ys.length)return '';
-    const lastY=ys[ys.length-1],isFocus=focusIdx===ti;
-    return `<text class="map-chrono-name${isFocus?' focus':''}" data-topic-idx="${ti}" x="${leftPad}" y="${Y(tl[lastY].rank)+4}">${escapeHTML(String(t.name||'').slice(0,7))}</text>`;
+  // 话题名标签：最多 9 字+省略号，完整名写入 <title>；只在发生碰撞时偏移
+  const nameItems=topics.map((t,ti)=>{
+    const tl=t.timeline||{},ys=Object.keys(tl).sort();
+    if(!ys.length)return null;
+    const lastY=ys[ys.length-1];
+    return {
+      ti,
+      y:Y(Number(tl[lastY].rank)||1)+4,
+      name:String(t.name||'未命名话题')
+    };
+  }).filter(Boolean).sort((a,b)=>a.y-b.y||a.ti-b.ti);
+
+  // 向下消解碰撞
+  for(let i=1;i<nameItems.length;i++){
+    nameItems[i].y=Math.max(nameItems[i].y,nameItems[i-1].y+minNameGap);
+  }
+
+  // 若底部溢出，从底部向上回排；布局阶段已保证整列至少容得下 16px 行距
+  const maxNameY=chartH-bottomPad+4;
+  if(nameItems.length&&nameItems[nameItems.length-1].y>maxNameY){
+    nameItems[nameItems.length-1].y=maxNameY;
+    for(let i=nameItems.length-2;i>=0;i--){
+      nameItems[i].y=Math.min(nameItems[i].y,nameItems[i+1].y-minNameGap);
+    }
+  }
+
+  const names=nameItems.map(it=>{
+    const isFocus=focusIdx===it.ti;
+    const chars=Array.from(it.name);
+    const short=chars.length>9?chars.slice(0,9).join('')+'…':it.name;
+    return `<text class="map-chrono-name${isFocus?' focus':''}" data-topic-idx="${it.ti}" x="${leftPad}" y="${it.y}"><title>${escapeHTML(it.name)}</title>${escapeHTML(short)}</text>`;
   }).join('');
 
   return `<div class="map-chrono">
