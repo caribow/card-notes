@@ -78,13 +78,12 @@ class FrontendContractTests(unittest.TestCase):
     def test_recorded_on_drives_display_but_created_at_is_preserved(self):
         self.assertIn('id="noteRecordedOn"', HTML)
         self.assertIn('id="detailEditRecordedOn"', HTML)
-        self.assertIn('recorded_on:n.recorded_on||null', HTML)
-        self.assertIn('created_at:n.created_at', HTML)
+        self.assertIn('recorded_on:r.recorded_on||null', HTML)
+        self.assertIn('created_at:r.created_at', HTML)
         self.assertRegex(HTML, r"function noteDate\(n\).*?n\.recorded_on\|\|n\.time\|\|n\.created_at")
         self.assertIn("insert({text,tags,imgs,recorded_on", HTML)
         self.assertIn("update({text:newText,tags,imgs:newImgs,recorded_on}", HTML)
         self.assertIn("const recorded_on=null", HTML)
-        self.assertIn("recorded_on:n.recorded_on||null", HTML)
 
     def test_format_tools_are_integrated_in_both_editors(self):
         self.assertEqual(HTML.count('<summary>Aa 格式</summary>'), 0)
@@ -146,7 +145,7 @@ class FrontendContractTests(unittest.TestCase):
         self.assertGreaterEqual(HTML.count('data-action="pin"'), 1)
         self.assertIn("function compareNotes(a,b)", HTML)
         self.assertIn("n.pinned_at?' pinned':''", HTML)
-        self.assertIn("pinned_at:n.pinned_at||null", HTML)
+        self.assertIn("pinned_at:r.pinned_at||null", HTML)
 
     def test_note_menu_is_a_single_shared_component(self):
         # 菜单全局唯一：只有一份 DOM，所有页面（首页/详情/洞察/随机漫步）复用
@@ -158,9 +157,16 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("if(action==='pin')togglePin(id)", HTML)
         self.assertIn("if(action==='reference-create')referenceAndCreate(id)", HTML)
         self.assertIn("if(action==='insight')openInsight(id)", HTML)
-        self.assertIn("if(action==='delete')confirmDelete(id)", HTML)
+        self.assertIn("if(action==='restore')restoreNotes([id])", HTML)
+        self.assertIn("confirmDelete(id)", HTML)
         self.assertNotIn('detail-menu-item', HTML)
         self.assertNotIn('id="cardMenuPop"', HTML)
+
+    def test_heatmap_placeholder_does_not_collide_with_global_empty_class(self):
+        # 热力图月初占位格禁止使用全局 .empty 类（笔记列表空状态带 padding:60px，会撑爆格子）
+        self.assertIn('class="heatmap-cell heat-empty"', HTML)
+        self.assertNotIn('class="heatmap-cell empty"', HTML)
+        self.assertIn('.heatmap-cell.heat-empty{', HTML)
 
     def test_tag_suggest_is_bound_to_all_tag_inputs(self):
         self.assertIn("function setupTagSuggest(inp)", HTML)

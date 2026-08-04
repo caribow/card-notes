@@ -66,7 +66,7 @@ input,textarea{font-family:inherit;outline:none;border:none}
   transition:transform .1s,background .15s;
 }
 .heatmap-cell:hover{transform:scale(1.4);z-index:5;position:relative}
-.heatmap-cell.empty{background:transparent;pointer-events:none}
+.heatmap-cell.heat-empty{background:transparent;pointer-events:none;padding:0;display:block}
 .heatmap-cell.today{outline:1px solid #9A9A9A;outline-offset:1px}
 .heatmap-cell.l1{background:#6E6E6E}
 .heatmap-cell.l2{background:#969696}
@@ -523,6 +523,35 @@ input,textarea{font-family:inherit;outline:none;border:none}
   .insight-topbar{padding:0 10px}
   .insight-inner{padding:16px 14px 80px}
 }
+
+/* ============ TRASH PAGE ============ */
+.trash-mask{position:fixed;inset:0;z-index:241;background:var(--bg);transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden}
+.trash-mask.show{transform:translateX(0)}
+.trash-topbar{height:var(--topbar-h);flex-shrink:0;display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid var(--border-soft)}
+.trash-back{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text-2);padding:6px 10px;border-radius:7px;transition:background .15s,color .15s}
+.trash-back:hover{background:var(--hover-bg);color:var(--text)}
+.trash-title{font-family:var(--mono);font-size:11px;color:var(--text-3);letter-spacing:2px;flex:1}
+.trash-count{font-family:var(--mono);font-size:11px;color:var(--text-2)}
+.trash-clear{font-size:12px;color:var(--red);padding:6px 10px;border-radius:7px;transition:background .15s}
+.trash-clear:hover{background:rgba(239,68,68,.08)}
+.trash-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0}
+.trash-inner{max-width:640px;margin:0 auto;padding:16px 20px 100px}
+.trash-card-wrap{display:flex;align-items:flex-start;gap:4px}
+.trash-card-wrap .card{flex:1;min-width:0}
+.trash-check{width:30px;height:30px;flex-shrink:0;margin-top:10px;border:1px solid var(--border);border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;color:transparent;transition:all .15s;cursor:pointer}
+.trash-check.on{background:#4A4A4A;border-color:#4A4A4A;color:#fff}
+.trash-actionbar{position:fixed;left:50%;bottom:18px;transform:translate(-50%,80px);z-index:243;display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--border);border-radius:24px;box-shadow:0 8px 28px rgba(0,0,0,.16);padding:6px 8px;transition:transform .25s cubic-bezier(.4,0,.2,1)}
+.trash-actionbar.show{transform:translate(-50%,0)}
+.trash-actionbar .sel-count{font-family:var(--mono);font-size:11px;color:var(--text-2);padding:0 8px}
+.trash-act{font-size:13px;padding:7px 14px;border-radius:16px;transition:background .15s}
+.trash-act.restore{color:var(--text)}
+.trash-act.restore:hover{background:var(--hover-bg)}
+.trash-act.danger{color:var(--red)}
+.trash-act.danger:hover{background:rgba(239,68,68,.08)}
+@media(max-width:768px){
+  .trash-topbar{padding:0 10px}
+  .trash-inner{padding:12px 12px 110px}
+}
 </style>
 </head>
 <body>
@@ -566,6 +595,9 @@ input,textarea{font-family:inherit;outline:none;border:none}
     <div class="side-foot">
       <div class="side-foot-left">
         <span class="ver">v0.1</span>
+        <button class="theme-toggle" id="trashEntry" aria-label="回收站" title="回收站">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </button>
         <button class="theme-toggle" id="logoutBtn" aria-label="退出登录" title="退出登录">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
         </button>
@@ -602,7 +634,8 @@ input,textarea{font-family:inherit;outline:none;border:none}
   <div class="card-menu-item" data-action="edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>编辑</div>
   <div class="card-menu-item" data-action="reference-create"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>引用</div>
   <div class="card-menu-item" data-action="insight"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/><circle cx="12" cy="12" r="3.5"/></svg>洞察</div>
-  <div class="card-menu-item danger" data-action="delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>删除</div>
+  <div class="card-menu-item danger" data-action="delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg><span class="delete-label">删除</span></div>
+  <div class="card-menu-item" data-action="restore" hidden><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>恢复</div>
 </div>
 
 <!-- ===== MODAL ===== -->
@@ -676,6 +709,22 @@ input,textarea{font-family:inherit;outline:none;border:none}
   </div>
 </div>
 
+<!-- ===== TRASH PAGE ===== -->
+<div class="trash-mask" id="trashMask">
+  <div class="trash-topbar">
+    <button class="trash-back" id="trashBack"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg><span>返回</span></button>
+    <div class="trash-title">回收站</div>
+    <span class="trash-count" id="trashCount"></span>
+    <button class="trash-clear" id="trashClear">清空</button>
+  </div>
+  <div class="trash-body" id="trashBody"></div>
+</div>
+<div class="trash-actionbar" id="trashActionbar">
+  <span class="sel-count" id="trashSelCount">已选 0</span>
+  <button class="trash-act restore" id="trashRestoreBtn">恢复</button>
+  <button class="trash-act danger" id="trashDeleteBtn">彻底删除</button>
+</div>
+
 <!-- ===== INSIGHT PAGE ===== -->
 <div class="insight-mask" id="insightMask">
   <div class="insight-topbar">
@@ -712,9 +761,9 @@ function dbTimeToLocal(iso){const d=new Date(iso);return d.getFullYear()+'-'+('0
 function localTimeToDB(local){return local.replace(' ','T')+':00'}
 
 async function loadNotes(){
-  const {data,error}=await sb.from('notes').select('*').order('created_at',{ascending:false});
+  const {data,error}=await sb.from('notes').select('*').is('deleted_at',null).order('created_at',{ascending:false});
   if(error){showToast('加载失败: '+error.message);return}
-  notes=(data||[]).map(n=>({id:n.id,text:n.text,tags:n.tags||[],imgs:n.imgs||[],recorded_on:n.recorded_on||null,pinned_at:n.pinned_at||null,created_at:n.created_at,updated_at:n.updated_at,time:dbTimeToLocal(n.created_at)}));
+  notes=(data||[]).map(dbRowToNote);
   renderTree();renderHeatmap();updateTopbarTag();render();
 }
 
@@ -814,7 +863,7 @@ function renderHeatmap(){
   const dailyCount={};
   notes.forEach(n=>{const d=noteDate(n);dailyCount[d]=(dailyCount[d]||0)+1});
   const cells=[];
-  for(let i=0;i<offset;i++)cells.push('<div class="heatmap-cell empty"></div>');
+  for(let i=0;i<offset;i++)cells.push('<div class="heatmap-cell heat-empty"></div>');
   for(let d=1;d<=daysInMonth;d++){
     const key=y+'-'+('0'+(m+1)).slice(-2)+'-'+('0'+d).slice(-2);
     const cnt=dailyCount[key]||0;
@@ -925,9 +974,16 @@ const noteMenuPop=document.getElementById('noteMenuPop');let noteMenuNoteId=null
 function pinLabelHTML(container,id){const n=notes.find(x=>x.id===id);const lbl=container&&container.querySelector('.pin-label');if(lbl)lbl.textContent=n&&n.pinned_at?'取消置顶':'置顶'}
 function showNoteMenu(btn,id){
   noteMenuNoteId=id;pinLabelHTML(noteMenuPop,id);
+  // 回收站上下文：仅保留 编辑/恢复/彻底删除
+  const inTrash=trashMask.classList.contains('show');
+  noteMenuPop.querySelectorAll('.card-menu-item').forEach(it=>{
+    const a=it.dataset.action;
+    it.hidden=inTrash?!['edit','restore','delete'].includes(a):a==='restore';
+  });
+  const delLbl=noteMenuPop.querySelector('.delete-label');if(delLbl)delLbl.textContent=inTrash?'彻底删除':'删除';
   const r=btn.getBoundingClientRect(),pw=150;
   let l=r.right-pw;if(l<8)l=8;
-  const items=noteMenuPop.querySelectorAll('.card-menu-item').length;
+  const items=[...noteMenuPop.querySelectorAll('.card-menu-item')].filter(it=>!it.hidden).length;
   const ph=items*36+10;
   let t=r.bottom+4;if(t+ph>window.innerHeight)t=r.top-ph-4;if(t<8)t=8;
   noteMenuPop.style.left=l+'px';noteMenuPop.style.top=t+'px';noteMenuPop.classList.add('show');
@@ -940,7 +996,11 @@ noteMenuPop.addEventListener('click',e=>{
   if(action==='edit')openDetailEdit(id);
   if(action==='reference-create')referenceAndCreate(id);
   if(action==='insight')openInsight(id);
-  if(action==='delete')confirmDelete(id);
+  if(action==='restore')restoreNotes([id]);
+  if(action==='delete'){
+    if(trashMask.classList.contains('show'))confirmHardDelete([id]);
+    else confirmDelete(id);
+  }
 });
 document.addEventListener('click',e=>{if(!e.target.closest('#noteMenuPop')&&!e.target.closest('.card-menu-btn')&&!e.target.closest('.detail-menu-btn'))hideNoteMenu()});
 
@@ -1043,7 +1103,22 @@ function referenceAndCreate(id){const n=notes.find(x=>x.id===id);if(!n)return;cl
 
 /* ============ CONFIRM DELETE ============ */
 const confirmMask=document.getElementById('confirmMask');
-function confirmDelete(id){const n=notes.find(x=>x.id===id);if(!n)return;document.getElementById('confirmMsg').textContent='确认删除这条笔记？删除后不可恢复。';confirmMask.classList.add('show');const ok=document.getElementById('confirmOk'),cancel=document.getElementById('confirmCancel');const cleanup=()=>{confirmMask.classList.remove('show');ok.onclick=null;cancel.onclick=null};ok.onclick=async()=>{cleanup();const {error}=await sb.from('notes').delete().eq('id',id);if(error){showToast('删除失败');return}const paths=(n.imgs||[]).filter(path=>!isLegacyImageUrl(path));if(paths.length)await removeStoragePaths(paths,'笔记已删除，但图片清理失败');clearDraft(editDraftKey(id));notes=notes.filter(x=>x.id!==id);renderTree();renderHeatmap();render();if(detailMask.classList.contains('show'))closeDetail()};cancel.onclick=cleanup}
+function confirmDelete(id){const n=notes.find(x=>x.id===id);if(!n)return;showConfirm('这条笔记将移入回收站，可随时恢复。','移入回收站',async()=>{
+  const {error}=await sb.from('notes').update({deleted_at:new Date().toISOString()}).eq('id',id);
+  if(error){showToast('删除失败');return}
+  clearDraft(editDraftKey(id));notes=notes.filter(x=>x.id!==id);renderTree();renderHeatmap();render();
+  if(detailMask.classList.contains('show'))closeDetail();
+  showToast('已移入回收站');
+})}
+
+/* 通用确认框：msg + 确认按钮文案 + 动作 */
+function showConfirm(msg,okLabel,onOk){
+  document.getElementById('confirmMsg').textContent=msg;
+  const ok=document.getElementById('confirmOk'),cancel=document.getElementById('confirmCancel');
+  ok.textContent=okLabel;confirmMask.classList.add('show');
+  const cleanup=()=>{confirmMask.classList.remove('show');ok.onclick=null;cancel.onclick=null;ok.textContent='删除'};
+  ok.onclick=async()=>{cleanup();await onOk()};cancel.onclick=cleanup;
+}
 document.getElementById('confirmMask').addEventListener('click',e=>{if(e.target===confirmMask)confirmMask.classList.remove('show')});
 
 /* ============ COGNITIVE MAP ============ */
@@ -1213,6 +1288,77 @@ document.getElementById('mapEntry').addEventListener('click',openMap);document.g
 document.getElementById('mapZoomIn').addEventListener('click',()=>zoomMapBy(1.35));document.getElementById('mapZoomOut').addEventListener('click',()=>zoomMapBy(1/1.35));document.getElementById('mapZoomReset').addEventListener('click',()=>resetMapZoom());
 mapThemePanel.addEventListener('click',e=>{if(e.target.closest('.map-theme-panel-close')){mapThemePanel.classList.remove('show');return}const note=e.target.closest('[data-map-note-id]');if(note){closeMap();openDetail(Number(note.dataset.mapNoteId))}});
 window.addEventListener('resize',()=>{if(mapMask.classList.contains('show'))renderMap()});
+
+/* ============ TRASH PAGE ============ */
+const trashMask=document.getElementById('trashMask'),trashBody=document.getElementById('trashBody'),trashCount=document.getElementById('trashCount'),trashActionbar=document.getElementById('trashActionbar');
+let trashNotes=[],trashSelected=new Set();
+
+async function openTrash(){
+  closeSidebarMobile();hideNoteMenu();
+  trashSelected.clear();updateTrashActionbar();
+  trashMask.classList.add('show');
+  trashBody.innerHTML='<div class="trash-inner"><div class="insight-empty"><p style="animation:pulse 1.5s ease-in-out infinite">加载中...</p></div></div>';
+  trashCount.textContent='';
+  const {data,error}=await sb.from('notes').select('*').not('deleted_at','is',null).order('deleted_at',{ascending:false});
+  if(error){trashBody.innerHTML='<div class="trash-inner"><div class="insight-empty"><p>加载失败</p></div></div>';return}
+  trashNotes=(data||[]).map(dbRowToNote);
+  renderTrash();
+}
+function closeTrash(){trashMask.classList.remove('show');trashSelected.clear();updateTrashActionbar();loadNotes()}
+document.getElementById('trashEntry').addEventListener('click',openTrash);
+document.getElementById('trashBack').addEventListener('click',closeTrash);
+
+function renderTrash(){
+  trashCount.textContent=trashNotes.length+' 条';
+  document.getElementById('trashClear').style.display=trashNotes.length?'':'none';
+  if(!trashNotes.length){trashBody.innerHTML='<div class="trash-inner"><div class="insight-empty"><p>回收站是空的</p></div></div>';return}
+  trashBody.innerHTML='<div class="trash-inner">'+trashNotes.map(n=>
+    `<div class="trash-card-wrap"><button class="trash-check${trashSelected.has(n.id)?' on':''}" data-check-id="${Number(n.id)}" aria-label="选择"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></button>${cardHTML(n)}</div>`
+  ).join('')+'</div>';
+}
+function updateTrashActionbar(){
+  const n=trashSelected.size;
+  document.getElementById('trashSelCount').textContent='已选 '+n;
+  trashActionbar.classList.toggle('show',n>0);
+}
+trashBody.addEventListener('click',function(e){
+  const check=e.target.closest('.trash-check');
+  if(check){e.stopPropagation();const id=parseInt(check.dataset.checkId);trashSelected.has(id)?trashSelected.delete(id):trashSelected.add(id);check.classList.toggle('on');updateTrashActionbar();return}
+  const menuBtn=e.target.closest('.card-menu-btn');
+  if(menuBtn){e.stopPropagation();e.preventDefault();showNoteMenu(menuBtn,parseInt(menuBtn.dataset.noteId));return}
+  const card=e.target.closest('.card');
+  if(card&&card.dataset.id)openDetail(parseInt(card.dataset.id));
+});
+
+async function restoreNotes(ids){
+  const {error}=await sb.from('notes').update({deleted_at:null}).in('id',ids);
+  if(error){showToast('恢复失败');return}
+  trashNotes=trashNotes.filter(n=>!ids.includes(n.id));
+  ids.forEach(id=>trashSelected.delete(id));
+  renderTrash();updateTrashActionbar();loadNotes();
+  showToast('已恢复 '+ids.length+' 条');
+}
+async function hardDeleteNotes(ids){
+  const targets=trashNotes.filter(n=>ids.includes(n.id));
+  const {error}=await sb.from('notes').delete().in('id',ids);
+  if(error){showToast('删除失败');return}
+  const paths=targets.flatMap(n=>(n.imgs||[]).filter(p=>!isLegacyImageUrl(p)));
+  if(paths.length)await removeStoragePaths(paths,'笔记已删除，但部分图片清理失败');
+  ids.forEach(id=>clearDraft(editDraftKey(id)));
+  trashNotes=trashNotes.filter(n=>!ids.includes(n.id));
+  ids.forEach(id=>trashSelected.delete(id));
+  renderTrash();updateTrashActionbar();
+  showToast('已彻底删除 '+ids.length+' 条');
+}
+function confirmHardDelete(ids){
+  showConfirm('彻底删除 '+ids.length+' 条笔记？此操作不可恢复。','彻底删除',()=>hardDeleteNotes(ids));
+}
+document.getElementById('trashRestoreBtn').addEventListener('click',()=>{const ids=[...trashSelected];if(ids.length)restoreNotes(ids)});
+document.getElementById('trashDeleteBtn').addEventListener('click',()=>{const ids=[...trashSelected];if(ids.length)confirmHardDelete(ids)});
+document.getElementById('trashClear').addEventListener('click',()=>{
+  if(!trashNotes.length)return;
+  showConfirm('清空回收站？'+trashNotes.length+' 条笔记将被彻底删除，不可恢复。','清空回收站',()=>hardDeleteNotes(trashNotes.map(n=>n.id)));
+});
 
 /* ============ INSIGHT PAGE ============ */
 const insightMask=document.getElementById('insightMask'),insightBody=document.getElementById('insightBody'),insightTitle=document.getElementById('insightTitle');
