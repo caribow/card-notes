@@ -2,16 +2,60 @@
 // 职责：接收前端聚类后的「每簇代表笔记摘要」，调用 LLM 归纳出抽象话题名，返回结构化结果。
 // 安全：LLM 密钥只存于 Edge Function secrets（OPENAI_API_KEY），运行时 Deno.env.get 注入，
 //       绝不出现在源码 / 前端 / git 仓库。前端只见本函数，不见密钥。
-// 鉴权：必须带本人用户 JWT，否则 401，避免公开函数被盗刷。
+// 鉴权：平台层 verify_jwt=true（网关校验），函数内再用 Auth API 确认用户，防公开函数被盗刷。
+// CORS：必须最先处理 OPTIONS 预检，且所有响应带 CORS 头，否则浏览器 invoke 报
+//       "Failed to send a request to the Edge Function"（预检被 405 拒）。
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const CHAT_URL = 'https://api.gptsapi.net/v1/chat/completions'
 const MODEL = 'deepseek-v4-flash'
+const MAX_CLUSTERS = 60
+const MAX_SAMPLES_PER_CLUSTER = 8
+const MAX_EXCERPT_LENGTH = 500
+
+// Supabase Edge Function 标准 CORS 头（覆盖 invoke 会带的所有请求头）
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+}
 
 interface ClusterInput {
   cluster_id: number
   samples: Array<{ date: string; excerpt: string }>
+}
+
+function parseClusters(body: unknown): ClusterInput[] {
+  if (!body || typeof body !== 'object') throw new Error('invalid body')
+  const clusters = (body as { clusters?: unknown }).clusters
+  if (!Array.isArray(clusters) || clusters.length === 0 || clusters.length > MAX_CLUSTERS) {
+    throw new Error('invalid clusters')
+  }
+  return clusters.map((value) => {
+    const c = value as { cluster_id?: unknown; samples?: unknown }
+    if (!c || typeof c !== 'object' || !Number.isSafeInteger(c.cluster_id)) throw new Error('invalid cluster_id')
+    if (!Array.isArray(c.samples) || c.samples.length === 0 || c.samples.length > MAX_SAMPLES_PER_CLUSTER) {
+      throw new Error('invalid samples')
+    }
+    const samples = c.samples.map((sv) => {
+      const s = sv as { date?: unknown; excerpt?: unknown }
+      if (!s || typeof s !== 'object' || typeof s.date !== 'string' || typeof s.excerpt !== 'string') {
+        throw new Error('invalid sample fields')
+      }
+      const excerpt = s.excerpt.trim()
+      if (!excerpt || excerpt.length > MAX_EXCERPT_LENGTH) throw new Error('invalid excerpt')
+      return { date: s.date.trim().slice(0, 32), excerpt }
+    })
+    return { cluster_id: c.cluster_id as number, samples }
+  })
 }
 
 function buildPrompt(clusters: ClusterInput[]): string {
@@ -40,79 +84,106 @@ ${blocks}`
 }
 
 Deno.serve(async (req) => {
+  // 必须在方法限制、鉴权、读请求体之前处理浏览器 CORS 预检
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
   if (req.method !== 'POST') {
-    return new Response('method not allowed', { status: 405 })
-  }
-  const apiKey = Deno.env.get('OPENAI_API_KEY')
-  if (!apiKey) {
-    return new Response(JSON.stringify({ error: 'missing OPENAI_API_KEY secret' }), { status: 500 })
+    return jsonResponse({ error: 'method not allowed' }, 405)
   }
 
-  // 鉴权：必须是本人（有效用户 JWT），否则拒绝，防止公开函数被盗刷 LLM 额度。
-  const authHeader = req.headers.get('Authorization') ?? ''
-  const userClient = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_ANON_KEY')!,
-    { global: { headers: { Authorization: authHeader } } },
-  )
-  const { data: { user }, error: authErr } = await userClient.auth.getUser()
-  if (authErr || !user) {
-    return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401 })
-  }
-
-  let clusters: ClusterInput[]
   try {
-    const body = await req.json()
-    clusters = body.clusters
-    if (!Array.isArray(clusters) || !clusters.length) throw new Error('empty')
-    // 限制规模，防止异常大请求
-    if (clusters.length > 60) throw new Error('too many clusters')
-  } catch (e) {
-    return new Response(JSON.stringify({ error: 'invalid clusters payload' }), { status: 400 })
-  }
-
-  const prompt = buildPrompt(clusters)
-
-  let llmResp
-  try {
-    llmResp = await fetch(CHAT_URL, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.3,
-        response_format: { type: 'json_object' },
-      }),
-    })
-  } catch (e) {
-    return new Response(JSON.stringify({ error: 'llm fetch failed', detail: String(e) }), { status: 502 })
-  }
-
-  if (!llmResp.ok) {
-    const t = await llmResp.text()
-    return new Response(JSON.stringify({ error: 'llm api failed', detail: t }), { status: 502 })
-  }
-
-  const lj = await llmResp.json()
-  const content = lj?.choices?.[0]?.message?.content ?? ''
-  const usage = lj?.usage ?? null
-
-  let parsed
-  try {
-    parsed = JSON.parse(content)
-  } catch {
-    // 模型偶尔会在 JSON 外包一层，尝试截取第一个 { 到最后一个 }
-    const s = content.indexOf('{'); const e2 = content.lastIndexOf('}')
-    if (s >= 0 && e2 > s) {
-      try { parsed = JSON.parse(content.slice(s, e2 + 1)) } catch { parsed = null }
+    // 平台层 verify_jwt=true 已在网关校验 JWT；这里再用 Auth API 确认有效用户
+    const authHeader = req.headers.get('Authorization') ?? ''
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')
+    if (!supabaseUrl || !supabaseAnonKey) {
+      return jsonResponse({ error: 'missing Supabase environment' }, 500)
     }
-  }
-  if (!parsed || !Array.isArray(parsed.results)) {
-    return new Response(JSON.stringify({ error: 'llm returned non-json', raw: content.slice(0, 500) }), { status: 502 })
-  }
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+    const { data: { user }, error: authErr } = await userClient.auth.getUser()
+    if (authErr || !user) {
+      return jsonResponse({ error: 'unauthorized' }, 401)
+    }
 
-  return new Response(JSON.stringify({ results: parsed.results, usage }), {
-    headers: { 'Content-Type': 'application/json' },
-  })
+    // 鉴权通过后才检查密钥配置，避免向未授权请求暴露配置状态
+    const apiKey = Deno.env.get('OPENAI_API_KEY')
+    if (!apiKey) {
+      return jsonResponse({ error: 'missing OPENAI_API_KEY secret' }, 500)
+    }
+
+    let requestBody: unknown
+    try {
+      requestBody = await req.json()
+    } catch {
+      return jsonResponse({ error: 'invalid JSON body' }, 400)
+    }
+
+    let clusters: ClusterInput[]
+    try {
+      clusters = parseClusters(requestBody)
+    } catch {
+      return jsonResponse({ error: 'invalid clusters payload' }, 400)
+    }
+
+    let llmResponse: Response
+    try {
+      llmResponse = await fetch(CHAT_URL, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: MODEL,
+          messages: [{ role: 'user', content: buildPrompt(clusters) }],
+          temperature: 0.3,
+          response_format: { type: 'json_object' },
+        }),
+      })
+    } catch (e) {
+      return jsonResponse({ error: 'llm fetch failed', detail: String(e) }, 502)
+    }
+
+    if (!llmResponse.ok) {
+      const detail = (await llmResponse.text()).slice(0, 1000)
+      return jsonResponse({ error: 'llm api failed', detail }, 502)
+    }
+
+    let llmBody: unknown
+    try {
+      llmBody = await llmResponse.json()
+    } catch {
+      return jsonResponse({ error: 'llm returned invalid response' }, 502)
+    }
+
+    const content = (llmBody as { choices?: Array<{ message?: { content?: unknown } }> })
+      ?.choices?.[0]?.message?.content
+    if (typeof content !== 'string') {
+      return jsonResponse({ error: 'llm response missing content' }, 502)
+    }
+
+    let parsed: { results?: unknown } | null = null
+    try {
+      parsed = JSON.parse(content)
+    } catch {
+      const s = content.indexOf('{')
+      const e2 = content.lastIndexOf('}')
+      if (s >= 0 && e2 > s) {
+        try { parsed = JSON.parse(content.slice(s, e2 + 1)) } catch { parsed = null }
+      }
+    }
+    if (!parsed || !Array.isArray(parsed.results)) {
+      return jsonResponse({ error: 'llm returned non-json', raw: content.slice(0, 500) }, 502)
+    }
+
+    const usage = (llmBody as { usage?: unknown }).usage ?? null
+    return jsonResponse({ results: parsed.results, usage })
+  } catch (e) {
+    console.error('name-topics unhandled error', e)
+    return jsonResponse({ error: 'internal server error' }, 500)
+  }
 })
