@@ -482,46 +482,48 @@ input,textarea{font-family:inherit;outline:none;border:none}
 /* ============ COGNITIVE MAP ============ */
 .map-mask{position:fixed;inset:0;z-index:240;background:var(--bg);transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden}
 .map-mask.show{transform:translateX(0)}
-.map-topbar{height:var(--topbar-h);flex-shrink:0;display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid var(--border-soft)}
+.map-topbar{height:var(--topbar-h);flex-shrink:0;display:flex;align-items:center;padding:0 16px;border-bottom:1px solid var(--border-soft)}
+.map-topbar-inner{max-width:640px;margin:0 auto;width:100%;display:flex;align-items:center;gap:8px}
 .map-back{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text-2);padding:6px 10px;border-radius:7px;transition:background .15s,color .15s}
 .map-back:hover{background:var(--hover-bg);color:var(--text)}
 .map-title{font-family:var(--mono);font-size:11px;color:var(--text-3);letter-spacing:2px;flex:1}
 .map-count{font-family:var(--mono);font-size:10px;color:#666;white-space:nowrap}
-.map-controls{display:flex;align-items:center;gap:3px}
-.map-zoom-btn{width:28px;height:28px;border:1px solid var(--border);border-radius:3px;color:var(--text-2);background:var(--bg);font-family:var(--mono);font-size:14px;display:flex;align-items:center;justify-content:center}
-.map-zoom-btn:hover{border-color:#999;color:var(--text);background:var(--hover-bg)}
-.map-zoom-reset{font-size:10px;width:auto;padding:0 8px}
-.map-body{flex:1;overflow:hidden;position:relative;-webkit-overflow-scrolling:touch;touch-action:none}
-.map-canvas{position:absolute;inset:0}
-.map-canvas svg{display:block;width:100%;height:100%;cursor:grab}
-.map-canvas svg:active{cursor:grabbing}
-.map-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-3);gap:12px;padding:30px;text-align:center}
+.map-rebuild{font-size:12px;color:var(--text-2);padding:6px 12px;border:1px solid var(--border);border-radius:3px;background:var(--bg)}
+.map-rebuild:hover{border-color:#999;color:var(--text);background:var(--hover-bg)}
+.map-rebuild:disabled{opacity:.5;cursor:default}
+.map-body{flex:1;overflow-y:auto;position:relative;-webkit-overflow-scrolling:touch}
+.map-canvas{min-height:100%}
+.map-empty{min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-3);gap:12px;padding:30px;text-align:center}
 .map-empty p{font-family:var(--mono);font-size:12px;letter-spacing:.5px}
-.map-hint{position:absolute;left:12px;bottom:12px;font-family:var(--mono);font-size:10px;color:var(--text-3);letter-spacing:.2px;background:var(--bg);padding:4px 9px;border-radius:5px;border:1px solid var(--border-soft);opacity:.9;pointer-events:none}
-.map-node{cursor:pointer}
-.map-node circle{transition:r .12s,opacity .12s}
-.map-node:hover circle{r:6}
-.map-node.unfenced circle{fill:var(--text-3);opacity:.32}
-.map-theme-fence{stroke-linejoin:round;vector-effect:non-scaling-stroke}
-.map-theme-label{cursor:pointer}
-.map-theme-label text{pointer-events:none;text-anchor:middle}
-.map-theme-label:hover .map-peak-label{fill:#000}
-.map-peak-label{font-family:var(--sans);font-size:12px;font-weight:600;fill:var(--text);text-anchor:middle}
-.map-peak-count{font-family:var(--mono);font-size:9px;fill:var(--text-3);text-anchor:middle}
-.map-theme-panel{position:absolute;right:14px;top:14px;width:min(320px,calc(100% - 28px));max-height:calc(100% - 28px);overflow:auto;background:var(--bg);border:1px solid var(--border);border-radius:10px;box-shadow:0 12px 34px rgba(0,0,0,.14);padding:16px;z-index:4;display:none}
-.map-theme-panel.show{display:block}
-.map-theme-panel-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:6px}
-.map-theme-panel-title{flex:1;font-size:16px;font-weight:600;line-height:1.35;color:var(--text)}
-.map-theme-panel-close{width:24px;height:24px;border-radius:5px;color:var(--text-3);font-size:18px;line-height:1}
-.map-theme-panel-close:hover{background:var(--hover-bg);color:var(--text)}
-.map-theme-panel-meta{font-family:var(--mono);font-size:10px;color:#666;margin-bottom:10px}
-.map-theme-panel-note{width:100%;text-align:left;padding:8px 10px;border-radius:3px;background:var(--bg-soft);border:1px solid var(--border-soft);margin-top:6px;color:var(--text-2);font-size:12px;line-height:1.5}
-.map-theme-panel-note:hover{border-color:#999;color:var(--text)}
-.map-theme-panel-kicker{font-family:var(--mono);font-size:9px;letter-spacing:1px;color:var(--text-3);margin-top:12px}
+
+/* ---- 话题卡片 ---- */
+.map-topics-inner{max-width:640px;margin:0 auto;padding:22px 16px 60px}
+.map-topics-kicker{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--text-3)}
+.map-topics-sub{font-size:11px;color:var(--text-3);margin-top:4px;margin-bottom:18px}
+.map-topics-grid{display:flex;flex-direction:column;gap:12px}
+.map-topic-card{border:1px solid var(--border);border-radius:3px;background:var(--bg);padding:16px;cursor:pointer;transition:border-color .15s,background .15s}
+.map-topic-card:hover{border-color:#999;background:var(--bg-soft)}
+.map-topic-name{font-size:16px;font-weight:600;color:var(--text);line-height:1.35}
+.map-topic-def{font-size:12px;color:var(--text-2);line-height:1.55;margin-top:5px}
+.map-topic-meta{font-family:var(--mono);font-size:10px;color:#888;margin-top:8px}
+.map-topic-years{display:flex;align-items:flex-end;gap:4px;margin-top:10px;min-height:34px}
+.map-year-col{display:flex;flex-direction:column;align-items:center;gap:3px}
+.map-year-bar{width:12px;background:var(--text-3);border-radius:1px;opacity:.75}
+.map-year-lab{font-family:var(--mono);font-size:8px;color:var(--text-3)}
+/* 话题详情（笔记列表） */
+.map-topic-back{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--text-2);padding:6px 10px;border-radius:6px;margin-bottom:14px}
+.map-topic-back:hover{background:var(--hover-bg);color:var(--text)}
+.map-topic-detail-name{font-size:20px;font-weight:700;color:var(--text)}
+.map-topic-detail-def{font-size:13px;color:var(--text-2);line-height:1.6;margin-top:6px}
+.map-topic-detail-meta{font-family:var(--mono);font-size:10px;color:#888;margin-top:8px;margin-bottom:16px}
+.map-topic-notes{display:flex;flex-direction:column;gap:8px}
+.map-topic-note{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;padding:11px 13px;border:1px solid var(--border-soft);border-radius:3px;background:var(--bg);transition:border-color .15s,background .15s}
+.map-topic-note:hover{border-color:#999;background:var(--bg-soft)}
+.map-topic-note-label{font-size:13px;color:var(--text);line-height:1.5}
+.map-topic-note-date{font-family:var(--mono);font-size:10px;color:var(--text-3)}
 @media(max-width:768px){
-  .map-topbar{padding:0 10px;gap:4px}.map-title{display:none}.map-count{max-width:112px;overflow:hidden;text-overflow:ellipsis}
-  .map-theme-panel{top:auto;bottom:12px;right:12px;left:12px;width:auto;max-height:44%;border-radius:12px}
-  .map-hint{right:12px;text-align:center}
+  .map-topbar{padding:0 10px}.map-topbar-inner{gap:4px}.map-title{display:none}.map-count{max-width:112px;overflow:hidden;text-overflow:ellipsis}
+  .map-topics-inner{padding:18px 14px 50px}
 }
 
 /* ============ INSIGHT PAGE ============ */
@@ -810,19 +812,15 @@ input,textarea{font-family:inherit;outline:none;border:none}
 <!-- ===== COGNITIVE MAP ===== -->
 <div class="map-mask" id="mapMask">
   <div class="map-topbar">
-    <button class="map-back" id="mapBack"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg><span>返回</span></button>
-    <div class="map-title">认知地图</div>
-    <div class="map-controls" aria-label="地图缩放">
-      <button class="map-zoom-btn" id="mapZoomOut" title="缩小" aria-label="缩小">−</button>
-      <button class="map-zoom-btn" id="mapZoomIn" title="放大" aria-label="放大">＋</button>
-      <button class="map-zoom-btn map-zoom-reset" id="mapZoomReset" title="复位">复位</button>
+    <div class="map-topbar-inner">
+      <button class="map-back" id="mapBack"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg><span>返回</span></button>
+      <div class="map-title">认知地图</div>
+      <div class="map-count" id="mapCount"></div>
+      <button class="map-rebuild" id="mapRebuild" title="重新分析话题">重建话题</button>
     </div>
-    <div class="map-count" id="mapCount"></div>
   </div>
   <div class="map-body" id="mapBody">
     <div class="map-canvas" id="mapCanvas"></div>
-    <aside class="map-theme-panel" id="mapThemePanel" aria-live="polite"></aside>
-    <div class="map-hint">滚轮或双指缩放 · 拖动平移 · 仅为通过质量围栏的个人主题命名</div>
   </div>
 </div>
 
@@ -1349,8 +1347,7 @@ function showConfirm(msg,okLabel,onOk){
 document.getElementById('confirmMask').addEventListener('click',e=>{if(e.target===confirmMask)confirmMask.classList.remove('show')});
 
 /* ============ COGNITIVE MAP ============ */
-const mapMask=document.getElementById('mapMask'),mapCanvas=document.getElementById('mapCanvas'),mapCount=document.getElementById('mapCount'),mapThemePanel=document.getElementById('mapThemePanel');
-let mapData=null,mapZoomBehavior=null,mapSvgSelection=null;
+const mapMask=document.getElementById('mapMask'),mapCanvas=document.getElementById('mapCanvas'),mapCount=document.getElementById('mapCount');
 const THEME_MIN_COHESION=0.56,THEME_MIN_MARGIN=0.08;
 
 function seededRandom(seed){let a=seed>>>0;return function(){a|=0;a=(a+0x6D2B79F5)|0;let t=Math.imul(a^(a>>>15),1|a);t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296}}
@@ -1397,131 +1394,184 @@ function extractTerms(text){
 function canonicalThemeTerm(w){return /^(梦|梦到|梦里|梦境|梦中|梦见|做梦)$/.test(w)?'梦境':w}
 function themeTermSet(text){return new Set(Object.keys(extractTerms(text)).map(canonicalThemeTerm))}
 
-// 主题名必须来自多篇正文中的共同且有区分度的概念；不再使用标签兜底。
-function nameThemeFromContent(members,globalDocFreq,totalDocs){
-  const freq={};
-  members.forEach(m=>themeTermSet(stripSemanticNoise(stripBilinks(m.note.text||''))).forEach(w=>freq[w]=(freq[w]||0)+1));
-  const minDocs=Math.max(3,Math.ceil(members.length*0.08));
-  const groundedLabels=[
-    {terms:['快捷','指令'],label:'数字工具与快捷指令'},
-    {terms:['跑步'],label:'跑步与身体训练'},
-    {terms:['梦境'],label:'梦境与往事'},
-    {terms:['关系','自我'],label:'关系与自我'}
-  ];
-  const grounded=groundedLabels.find(rule=>rule.terms.every(w=>(freq[w]||0)>=minDocs));
-  if(grounded)return grounded.label;
-  const cands=Object.entries(freq).filter(([w,c])=>c>=minDocs&&!GENERIC_THEME_TERMS.has(w)&&(w.length>=2||CONCEPT_SINGLE_CHARS.has(w))).map(([w,c])=>{
-    const distinct=Math.log((totalDocs+1)/((globalDocFreq[w]||c)+1))+1;
-    return{w,c,score:(c/members.length)*distinct*Math.log(2+w.length)};
-  }).sort((a,b)=>b.score-a.score||b.c-a.c);
-  const picked=[];
-  for(const cand of cands){if(picked.some(p=>p.w.includes(cand.w)||cand.w.includes(p.w)))continue;picked.push(cand);if(picked.length===2)break}
-  if(!picked.length)return null;
-  if(picked.length===2){
-    const joined=[picked[0].w+picked[1].w,picked[1].w+picked[0].w].find(term=>members.filter(m=>stripSemanticNoise(m.note.text).includes(term)).length>=minDocs);
-    if(joined)return joined.slice(0,18);
-  }
-  return picked.map(x=>x.w).join(' · ').slice(0,18);
-}
-
-// 确定性的球面 K-Means：只负责提出候选主题；质量围栏决定候选能否被展示。
-function sphericalKMeans(pts,k){
-  pts.forEach(p=>p.unitVec=normalizeVec(p.vec));
-  const n=pts.length,centroids=[];
-  centroids.push([...pts[(0xF1A5C0DE>>>0)%n].unitVec]);
-  while(centroids.length<k){
-    let best=0,bestDist=-1;
-    for(let i=0;i<n;i++){const maxSim=Math.max(...centroids.map(c=>dotVec(pts[i].unitVec,c))),dist=1-maxSim;if(dist>bestDist){bestDist=dist;best=i}}
-    centroids.push([...pts[best].unitVec]);
-  }
-  const assignments=new Array(n).fill(-1);
-  for(let iter=0;iter<14;iter++){
-    let changed=false;
-    for(let i=0;i<n;i++){let bi=0,bs=-Infinity;for(let c=0;c<k;c++){const s=dotVec(pts[i].unitVec,centroids[c]);if(s>bs){bs=s;bi=c}}if(assignments[i]!==bi){assignments[i]=bi;changed=true}}
-    const sums=Array.from({length:k},()=>new Array(pts[0].unitVec.length).fill(0)),counts=new Array(k).fill(0);
-    for(let i=0;i<n;i++){const c=assignments[i];counts[c]++;for(let d=0;d<sums[c].length;d++)sums[c][d]+=pts[i].unitVec[d]}
-    for(let c=0;c<k;c++)if(counts[c])centroids[c]=normalizeVec(sums[c]);
-    if(!changed&&iter>1)break;
-  }
-  return centroids.map((centroid,index)=>({index,centroid,members:pts.filter((_,i)=>assignments[i]===index)})).filter(x=>x.members.length);
-}
-
-function findMeaningfulThemes(pts){
-  const k=Math.max(3,Math.min(8,Math.round(Math.sqrt(pts.length/15))));
-  const raw=sphericalKMeans(pts,k),globalDocFreq={};
-  pts.forEach(p=>themeTermSet(stripSemanticNoise(stripBilinks(p.note.text||''))).forEach(w=>globalDocFreq[w]=(globalDocFreq[w]||0)+1));
-  const minThemeSize=Math.max(6,Math.ceil(pts.length*0.05));
-  raw.forEach(theme=>{
-    const own=theme.members.map(p=>dotVec(p.unitVec,theme.centroid));
-    const margins=theme.members.map((p,i)=>own[i]-Math.max(...raw.filter(t=>t!==theme).map(t=>dotVec(p.unitVec,t.centroid))));
-    const cohesion=own.reduce((a,b)=>a+b,0)/own.length,margin=margins.reduce((a,b)=>a+b,0)/margins.length;
-    const name=nameThemeFromContent(theme.members,globalDocFreq,pts.length);
-    theme.cohesion=cohesion;theme.margin=margin;theme.name=name;
-    theme.qualified=theme.members.length>=minThemeSize&&cohesion>=THEME_MIN_COHESION&&margin>=THEME_MIN_MARGIN&&Boolean(name);
-    theme.representatives=theme.members.map((p,i)=>({p,score:own[i]})).sort((a,b)=>b.score-a.score).slice(0,4).map(x=>x.p);
-    if(theme.qualified)theme.members.forEach(p=>p.theme=theme);
-  });
-  return raw;
-}
+/* ============ 认知地图 = 话题卡片（找出你没意识到但反复出现的话题） ============ */
+/* 架构：日常打开只读 map_cache 缓存（秒开、零 LLM 成本）；
+   「重建话题」在桌面浏览器拉向量做 spherical K-Means，把每簇代表笔记发给 name-topics
+   Edge Function 调 LLM 命名（密钥只在服务端 secrets），结果写回 map_cache。 */
+let mapTopicsCache=null,mapRebuilding=false;
 
 async function openMap(){
-  closeSidebarMobile();mapMask.classList.add('show');mapThemePanel.classList.remove('show');
-  mapCanvas.innerHTML='<div class="map-empty"><p style="animation:pulse 1.5s ease-in-out infinite">正在识别有意义的主题...</p></div>';mapCount.textContent='';
+  closeSidebarMobile();mapMask.classList.add('show');
+  mapCanvas.innerHTML='<div class="map-empty"><p style="animation:pulse 1.5s ease-in-out infinite">正在读取话题...</p></div>';mapCount.textContent='';
+  // 桌面显示重建按钮，手机隐藏（重建要拉全部向量+聚类，手机扛不住）
+  document.getElementById('mapRebuild').style.display=window.innerWidth>=1024?'':'none';
   try{
-    // 认知地图向量同样受 1000 行上限影响，循环分页拉取
-    const PAGE=1000,data=[];
-    for(let from=0;;from+=PAGE){
-      const {data:chunk,error}=await sb.from('notes').select('id,text,tags,recorded_on,created_at,embedding').not('embedding','is',null).is('deleted_at',null).range(from,from+PAGE-1);
-      if(error)throw error;
-      data.push(...(chunk||[]));
-      if(!chunk||chunk.length<PAGE)break;
+    const {data,error}=await sb.from('map_cache').select('payload,generated_at').limit(1).maybeSingle();
+    if(error)throw error;
+    if(!data||!data.payload||!Array.isArray(data.payload.topics)||!data.payload.topics.length){
+      mapTopicsCache=null;
+      mapCanvas.innerHTML='<div class="map-empty"><p>还没有生成话题</p><p style="font-size:11px">在桌面端点右上角「重建话题」，AI 会分析你反复复写、却可能没意识到的主题</p></div>';
+      mapCount.textContent='';return;
     }
-    const allPts=[];(data||[]).forEach(r=>{const v=parseEmbedding(r.embedding);if(!v||!v.length)return;const note=notes.find(n=>n.id===r.id)||{id:r.id,text:r.text,tags:r.tags||[],recorded_on:r.recorded_on,created_at:r.created_at,time:dbTimeToLocal(r.created_at)};allPts.push({id:r.id,vec:v,note,label:noteLinkLabel(note)})});
-    const pts=allPts.filter(p=>isSubstantiveMapNote(p.note)),excluded=allPts.length-pts.length;
-    if(pts.length<6){mapCanvas.innerHTML='<div class="map-empty"><p>可分析的个人笔记还太少</p><p style="font-size:11px">至少需要 6 条有正文的非自动采集笔记</p></div>';mapCount.textContent=pts.length+' 篇';return}
-    const nNeighbors=Math.min(15,Math.max(2,pts.length-1));
-    const umap=new UMAP({nNeighbors,nComponents:2,minDist:0.16,spread:1.0,random:seededRandom(0xF1A5C0DE)});
-    const embedding=umap.fit(pts.map(p=>p.vec));pts.forEach((p,i)=>{p.x=embedding[i][0];p.y=embedding[i][1]});
-    const themes=findMeaningfulThemes(pts);mapData={pts,themes,excluded};renderMap();
-  }catch(e){console.error(e);mapCanvas.innerHTML='<div class="map-empty"><p>地图生成失败</p><p style="font-size:11px">'+escapeHTML(String(e.message||e))+'</p></div>'}
+    mapTopicsCache=data.payload;
+    renderTopicCards(data.payload,data.generated_at);
+  }catch(e){console.error(e);mapCanvas.innerHTML='<div class="map-empty"><p>读取失败</p><p style="font-size:11px">'+escapeHTML(String(e.message||e))+'</p></div>'}
 }
-function closeMap(){mapMask.classList.remove('show');mapThemePanel.classList.remove('show')}
+function closeMap(){mapMask.classList.remove('show')}
 
-function renderThemeFence(theme,parent,W,H,svgNS,green){
-  const gridN=56,cellW=W/gridN,cellH=H/gridN,density=new Array(gridN*gridN).fill(0),sigma=Math.max(2.5,Math.min(4.5,Math.sqrt(theme.members.length)*0.48));
-  theme.members.forEach(p=>{const gx=p.sx/cellW,gy=p.sy/cellH;for(let j=Math.max(0,Math.floor(gy-3*sigma));j<Math.min(gridN,Math.ceil(gy+3*sigma));j++)for(let i=Math.max(0,Math.floor(gx-3*sigma));i<Math.min(gridN,Math.ceil(gx+3*sigma));i++){const dx=i-gx,dy=j-gy;density[j*gridN+i]+=Math.exp(-(dx*dx+dy*dy)/(2*sigma*sigma))}});
-  const maxD=Math.max(...density,0.001),contours=d3.contours().size([gridN,gridN]).smooth(true).thresholds([maxD*0.18,maxD*0.38])(density);
-  const path=d3.geoPath(d3.geoTransform({point:function(x,y){this.stream.point(x*cellW,y*cellH)}}));
-  contours.forEach((c,i)=>{const pe=document.createElementNS(svgNS,'path');pe.setAttribute('d',path(c));pe.setAttribute('class','map-theme-fence');pe.setAttribute('fill',i===0?green:'none');pe.setAttribute('fill-opacity',i===0?'0.055':'0');pe.setAttribute('stroke',green);pe.setAttribute('stroke-opacity',i===0?'0.34':'0.62');pe.setAttribute('stroke-width',i===0?'1.2':'1.5');parent.appendChild(pe)});
+/* ---- 话题卡片渲染 ---- */
+function renderTopicCards(payload,generatedAt){
+  const topics=payload.topics||[];
+  mapCount.textContent=topics.length+' 个话题';
+  const gen=generatedAt?('更新于 '+String(generatedAt).slice(0,10)):'';
+  const cards=topics.map((t,i)=>topicCardHTML(t,i)).join('');
+  mapCanvas.innerHTML=`<div class="map-topics-inner"><div class="map-topics-kicker">可能被你忽略的反复话题</div><div class="map-topics-sub">AI 从你的笔记向量里归纳 · ${gen}</div><div class="map-topics-grid">${cards}</div></div>`;
 }
 
-function showMapTheme(theme){
-  const reps=theme.representatives.map(p=>`<button class="map-theme-panel-note" data-map-note-id="${Number(p.id)}">${escapeHTML(p.label)}</button>`).join('');
-  mapThemePanel.innerHTML=`<div class="map-theme-panel-head"><div class="map-theme-panel-title">${escapeHTML(theme.name)}</div><button class="map-theme-panel-close" aria-label="关闭">×</button></div><div class="map-theme-panel-meta">${theme.members.length} 篇 · 凝聚度 ${theme.cohesion.toFixed(2)} · 区分度 ${theme.margin.toFixed(2)}</div><div class="map-theme-panel-kicker">代表笔记</div>${reps}<div class="map-theme-panel-kicker">边界说明</div><div style="font-size:11px;color:var(--text-3);margin-top:5px">只使用正文语义；自动采集、纯链接和未通过质量围栏的候选不会被命名。</div>`;
-  mapThemePanel.classList.add('show');
+function topicCardHTML(t,i){
+  const yc=t.year_counts||{},years=Object.keys(yc).sort();
+  const maxC=Math.max(1,...Object.values(yc).map(Number));
+  // 年度分布小条形（标准化前先用绝对值，最多 24px 高）
+  const bars=years.map(y=>{const h=Math.max(2,Math.round(Number(yc[y])/maxC*24));return `<div class="map-year-col" title="${y} 年 ${yc[y]} 条"><div class="map-year-bar" style="height:${h}px"></div><div class="map-year-lab">${String(y).slice(2)}</div></div>`}).join('');
+  const span=t.first_date&&t.last_date?`${String(t.first_date).slice(0,4)}–${String(t.last_date).slice(0,4)}`:'';
+  return `<div class="map-topic-card" data-topic-idx="${i}">
+    <div class="map-topic-name">${escapeHTML(t.name||'未命名话题')}</div>
+    <div class="map-topic-def">${escapeHTML(t.definition||'')}</div>
+    <div class="map-topic-meta">${t.count||0} 条 · 横跨 ${span}</div>
+    <div class="map-topic-years">${bars}</div>
+  </div>`;
 }
 
-function renderMap(){
-  if(!mapData)return;const {pts,themes,excluded}=mapData,qualified=themes.filter(t=>t.qualified);
-  const W=mapCanvas.clientWidth||window.innerWidth,H=mapCanvas.clientHeight||window.innerHeight;mapCount.textContent=qualified.length+' 主题 · '+pts.length+' 篇';
-  const pad=Math.min(W,H)*0.07,xs=pts.map(p=>p.x),ys=pts.map(p=>p.y),x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
-  pts.forEach(p=>{p.sx=pad+((p.x-x0)/((x1-x0)||1))*(W-2*pad);p.sy=pad+((p.y-y0)/((y1-y0)||1))*(H-2*pad)});
-  const isDark=false,green='#4A4A4A',svgNS='http://www.w3.org/2000/svg';
-  const svgEl=document.createElementNS(svgNS,'svg');svgEl.setAttribute('viewBox',`0 0 ${W} ${H}`);svgEl.setAttribute('role','img');svgEl.setAttribute('aria-label',qualified.length+' 个有意义的主题，'+excluded+' 条自动采集未参与');
-  const viewport=document.createElementNS(svgNS,'g');svgEl.appendChild(viewport);
-  themes.filter(theme=>theme.qualified).forEach(theme=>renderThemeFence(theme,viewport,W,H,svgNS,green));
-  qualified.forEach(theme=>{const anchors=theme.representatives.slice(0,Math.min(4,theme.representatives.length)),cx=anchors.reduce((a,p)=>a+p.sx,0)/anchors.length,cy=anchors.reduce((a,p)=>a+p.sy,0)/anchors.length;const g=document.createElementNS(svgNS,'g');g.setAttribute('class','map-theme-label');const t1=document.createElementNS(svgNS,'text');t1.setAttribute('x',cx);t1.setAttribute('y',cy-10);t1.setAttribute('class','map-peak-label');t1.textContent=theme.name;const t2=document.createElementNS(svgNS,'text');t2.setAttribute('x',cx);t2.setAttribute('y',cy+5);t2.setAttribute('class','map-peak-count');t2.textContent=theme.members.length+' 篇 · 查看依据';g.appendChild(t1);g.appendChild(t2);g.addEventListener('click',e=>{e.stopPropagation();showMapTheme(theme)});viewport.appendChild(g)});
-  pts.forEach(p=>{const g=document.createElementNS(svgNS,'g');g.setAttribute('class','map-node'+(p.theme?'':' unfenced'));const c=document.createElementNS(svgNS,'circle');c.setAttribute('cx',p.sx);c.setAttribute('cy',p.sy);c.setAttribute('r',p.theme?'4.4':'3.2');c.setAttribute('fill',green);c.setAttribute('fill-opacity',p.theme?'0.86':'0.28');c.setAttribute('stroke',isDark?'#161616':'#fff');c.setAttribute('stroke-width','1.2');const title=document.createElementNS(svgNS,'title');title.textContent=p.label;g.appendChild(c);g.appendChild(title);g.addEventListener('click',()=>{closeMap();openDetail(p.id)});viewport.appendChild(g)});
-  mapCanvas.innerHTML='';mapCanvas.appendChild(svgEl);
-  const svg=d3.select(svgEl);mapZoomBehavior=d3.zoom().scaleExtent([0.6,8]).on('zoom',({transform})=>viewport.setAttribute('transform',transform));svg.call(mapZoomBehavior);mapSvgSelection=svg;mapSvgSelection.call(mapZoomBehavior.transform,d3.zoomIdentity);
-}
-function resetMapZoom(){if(!mapSvgSelection||!mapZoomBehavior)return;mapSvgSelection.transition().duration(180).call(mapZoomBehavior.transform,d3.zoomIdentity)}
-function zoomMapBy(factor){if(mapSvgSelection&&mapZoomBehavior)mapSvgSelection.transition().duration(160).call(mapZoomBehavior.scaleBy,factor)}
+/* 点击话题卡片 → 展开该话题的笔记列表（按相关度排序，标日期） */
+mapCanvas.addEventListener('click',function(e){
+  const card=e.target.closest('.map-topic-card');
+  if(card){
+    const t=(mapTopicsCache?.topics||[])[parseInt(card.dataset.topicIdx)];
+    if(t)showTopicDetail(t);return;
+  }
+  const back=e.target.closest('.map-topic-back');
+  if(back){if(mapTopicsCache)renderTopicCards(mapTopicsCache,null);return}
+  const note=e.target.closest('.map-topic-note');
+  if(note){const id=parseInt(note.dataset.noteId);closeMap();openDetail(id);return}
+});
 
-document.getElementById('mapEntry').addEventListener('click',openMap);document.getElementById('mapBack').addEventListener('click',closeMap);
-document.getElementById('mapZoomIn').addEventListener('click',()=>zoomMapBy(1.35));document.getElementById('mapZoomOut').addEventListener('click',()=>zoomMapBy(1/1.35));document.getElementById('mapZoomReset').addEventListener('click',()=>resetMapZoom());
-mapThemePanel.addEventListener('click',e=>{if(e.target.closest('.map-theme-panel-close')){mapThemePanel.classList.remove('show');return}const note=e.target.closest('[data-map-note-id]');if(note){closeMap();openDetail(Number(note.dataset.mapNoteId))}});
-window.addEventListener('resize',()=>{if(mapMask.classList.contains('show'))renderMap()});
+function showTopicDetail(t){
+  const items=(t.note_ids||[]).map((id,j)=>{
+    const n=notes.find(x=>x.id===id);
+    const label=n?noteLinkLabel(n):('笔记 #'+id);
+    const date=n?(n.recorded_on||String(n.created_at||'').slice(0,10)):'';
+    const sim=(t.similarities&&t.similarities[j]!=null)?(' · 相关 '+(Number(t.similarities[j]).toFixed(2))):'';
+    return `<button class="map-topic-note" data-note-id="${Number(id)}"><span class="map-topic-note-label">${escapeHTML(label)}</span><span class="map-topic-note-date">${escapeHTML(String(date))}${sim}</span></button>`;
+  }).join('');
+  mapCanvas.innerHTML=`<div class="map-topics-inner">
+    <button class="map-topic-back"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> 全部话题</button>
+    <div class="map-topic-detail-name">${escapeHTML(t.name||'')}</div>
+    <div class="map-topic-detail-def">${escapeHTML(t.definition||'')}</div>
+    <div class="map-topic-detail-meta">${t.count||0} 条 · ${String(t.first_date||'').slice(0,4)}–${String(t.last_date||'').slice(0,4)} · 按相关度排序</div>
+    <div class="map-topic-notes">${items}</div>
+  </div>`;
+}
+
+/* ---- 重建话题（桌面）：拉向量 → spherical K-Means → LLM 命名 → 写缓存 ---- */
+document.getElementById('mapRebuild').addEventListener('click',async()=>{
+  if(mapRebuilding)return;
+  mapRebuilding=true;
+  const btn=document.getElementById('mapRebuild');btn.disabled=true;btn.textContent='分析中…';
+  mapCanvas.innerHTML='<div class="map-empty"><p style="animation:pulse 1.5s ease-in-out infinite">正在拉取向量并聚类…</p><p style="font-size:11px">2500 条大约需要十几秒</p></div>';
+  try{
+    await rebuildTopics();
+  }catch(e){console.error(e);mapCanvas.innerHTML='<div class="map-empty"><p>分析失败</p><p style="font-size:11px">'+escapeHTML(String(e.message||e))+'</p></div>'}
+  mapRebuilding=false;btn.disabled=false;btn.textContent='重建话题';
+});
+
+async function rebuildTopics(){
+  // 1. 拉全部有向量的笔记（分页突破 1000 上限）
+  const PAGE=1000,rows=[];
+  for(let from=0;;from+=PAGE){
+    const {data,error}=await sb.from('notes').select('id,text,tags,recorded_on,created_at,embedding').not('embedding','is',null).is('deleted_at',null).range(from,from+PAGE-1);
+    if(error)throw error;rows.push(...(data||[]));
+    if(!data||data.length<PAGE)break;
+  }
+  const pts=rows.map(r=>({id:r.id,text:r.text,recorded_on:r.recorded_on,vec:normalizeVec(parseEmbedding(r.embedding)||[])}))
+    .filter(p=>p.vec.length&&isSubstantiveMapNote(notes.find(n=>n.id===p.id)||{text:p.text,tags:[]}));
+  if(pts.length<20)throw new Error('可分析笔记太少（'+pts.length+' 条）');
+  setMapProgress('聚类中（'+pts.length+' 条笔记）…');
+
+  // 2. spherical K-Means（余弦，K=30 候选）
+  const K=Math.min(30,Math.floor(pts.length/8));
+  const labels=sphericalKMeans(pts.map(p=>p.vec),K);
+
+  // 3. 按簇分组，淘汰小簇
+  const clusters={};
+  labels.forEach((lb,i)=>{(clusters[lb]=clusters[lb]||[]).push(pts[i])});
+  const cand=Object.entries(clusters).map(([cid,members])=>({cid:+cid,members})).filter(c=>c.members.length>=8);
+  setMapProgress('归纳话题（'+cand.length+' 个候选簇）…');
+
+  // 4. 每簇选代表样本（近质心 + 跨年份 + 边缘），发 LLM 命名
+  const clusterInputs=cand.map(c=>{
+    const centroid=meanVec(c.members.map(m=>m.vec));
+    const scored=c.members.map(m=>({m,s:dotVec(m.vec,centroid)})).sort((a,b)=>b.s-a.s);
+    const picks=[],used=new Set();
+    scored.slice(0,3).forEach(x=>{if(!used.has(x.m.id)){picks.push(x.m);used.add(x.m.id)}});
+    const byYear={};c.members.forEach(m=>{const y=String(m.recorded_on||'').slice(0,4);(byYear[y]=byYear[y]||[]).push(m)});
+    Object.keys(byYear).sort().forEach(y=>{const m=byYear[y][0];if(picks.length<6&&!used.has(m.id)){picks.push(m);used.add(m.id)}});
+    scored.slice(-2).forEach(x=>{if(picks.length<8&&!used.has(x.m.id)){picks.push(x.m);used.add(x.m.id)}});
+    return {cluster_id:c.cid,_members:c.members,_centroid:centroid,samples:picks.map(m=>({date:String(m.recorded_on||'').slice(0,10),excerpt:stripSemanticNoise(m.text).slice(0,120)}))};
+  });
+
+  const {data:fnData,error:fnErr}=await sb.functions.invoke('name-topics',{body:{clusters:clusterInputs.map(({cluster_id,samples})=>({cluster_id,samples}))}});
+  if(fnErr)throw new Error('命名失败: '+(fnErr.message||fnErr));
+  const named={};(fnData.results||[]).forEach(r=>{named[r.cluster_id]=r});
+
+  // 5. 组装话题：只保留 LLM 判定 valid 的，算相关度+时间分布
+  const topics=[];
+  cand.forEach((c,idx)=>{
+    const r=named[c.cid];
+    if(!r||!r.valid||!r.name)return;
+    const centroid=clusterInputs[idx]._centroid;
+    const members=c.members.map(m=>({id:m.id,recorded_on:m.recorded_on,sim:dotVec(m.vec,centroid)})).sort((a,b)=>b.sim-a.sim);
+    const year_counts={};let first=null,last=null;
+    members.forEach(m=>{const y=String(m.recorded_on||'').slice(0,4);if(y){year_counts[y]=(year_counts[y]||0)+1;const d=String(m.recorded_on||'');if(!first||d<first)first=d;if(!last||d>last)last=d}});
+    topics.push({name:r.name,definition:r.definition||'',count:members.length,note_ids:members.map(m=>m.id),similarities:members.map(m=>+m.sim.toFixed(3)),first_date:first,last_date:last,year_counts});
+  });
+  topics.sort((a,b)=>b.count-a.count);
+
+  // 6. 写回缓存（upsert 本人行）
+  const {data:{user}}=await sb.auth.getUser();
+  const payload={version:1,generated_note_count:pts.length,topics};
+  const {error:upErr}=await sb.from('map_cache').upsert({owner_id:user.id,source_note_count:pts.length,generated_at:new Date().toISOString(),payload},{onConflict:'owner_id'});
+  if(upErr)throw upErr;
+  mapTopicsCache=payload;
+  renderTopicCards(payload,new Date().toISOString());
+  showToast('已生成 '+topics.length+' 个话题');
+}
+function setMapProgress(t){mapCanvas.innerHTML='<div class="map-empty"><p style="animation:pulse 1.5s ease-in-out infinite">'+escapeHTML(t)+'</p></div>'}
+
+document.getElementById('mapEntry').addEventListener('click',openMap);
+document.getElementById('mapBack').addEventListener('click',closeMap);
+
+/* ---- spherical K-Means（余弦距离，不归一化质心则退化为普通 K-Means） ---- */
+function meanVec(vs){const d=vs[0].length,out=new Array(d).fill(0);vs.forEach(v=>{for(let i=0;i<d;i++)out[i]+=v[i]});return normalizeVec(out)}
+function sphericalKMeans(vecs,K){
+  const N=vecs.length,rnd=seededRandom(0xC0FFEE^0xF1A5);
+  // k-means++ 初始化
+  const centroids=[vecs[Math.floor(rnd()*N)]];
+  while(centroids.length<K){
+    const dists=vecs.map(v=>1-Math.max(...centroids.map(c=>dotVec(v,c))));
+    const sum=dists.reduce((a,b)=>a+b,0);let r=rnd()*sum,idx=0;
+    for(;idx<N;idx++){r-=dists[idx];if(r<=0)break}
+    centroids.push(vecs[Math.min(idx,N-1)]);
+  }
+  let labels=new Array(N).fill(0);
+  for(let iter=0;iter<25;iter++){
+    let changed=false;
+    for(let i=0;i<N;i++){let best=0,bs=-2;for(let c=0;c<K;c++){const s=dotVec(vecs[i],centroids[c]);if(s>bs){bs=s;best=c}}if(labels[i]!==best){labels[i]=best;changed=true}}
+    const groups={};labels.forEach((lb,i)=>{(groups[lb]=groups[lb]||[]).push(vecs[i])});
+    for(let c=0;c<K;c++){if(groups[c]&&groups[c].length)centroids[c]=meanVec(groups[c])}
+    if(!changed)break;
+  }
+  return labels;
+}
 
 /* ============ WANDER（随机漫步） ============ */
 const wanderMask=document.getElementById('wanderMask'),wanderDeck=document.getElementById('wanderDeck'),wanderNext=document.getElementById('wanderNext'),wanderCount=document.getElementById('wanderCount');

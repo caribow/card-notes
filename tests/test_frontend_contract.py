@@ -4,6 +4,7 @@ from pathlib import Path
 
 HTML = Path(__file__).parents[1].joinpath("index.html").read_text(encoding="utf-8")
 EDGE = Path(__file__).parents[1].joinpath("supabase/functions/embed-note/index.ts").read_text(encoding="utf-8")
+EDGE_NAMETOPICS = Path(__file__).parents[1].joinpath("supabase/functions/name-topics/index.ts").read_text(encoding="utf-8")
 MIGRATION_SQL = "\n".join(
     p.read_text(encoding="utf-8")
     for p in sorted(Path(__file__).parents[1].joinpath("supabase/migrations").glob("*.sql"))
@@ -238,24 +239,20 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn('id="mapEntry"', HTML)
         self.assertIn('id="mapMask"', HTML)
         self.assertIn('async function openMap()', HTML)
-        self.assertIn('new UMAP(', HTML)
-        self.assertIn('d3.contours()', HTML)
-        self.assertIn('parseEmbedding', HTML)
-        self.assertIn('umap-js', HTML)
-        self.assertIn('d3@7', HTML)
+        self.assertIn('map_cache', HTML)  # 读缓存，秒开
+        self.assertIn('id="mapRebuild"', HTML)  # 桌面重建按钮
+        self.assertIn('name-topics', HTML)  # LLM 命名走 Edge Function
+        self.assertIn('function sphericalKMeans(', HTML)
 
     def test_cognitive_map_filters_noise_and_uses_quality_fences(self):
         self.assertIn('function isSubstantiveMapNote(note)', HTML)
         self.assertIn("tags.includes('IFTTT')", HTML)
         self.assertIn("tags.includes('Day One/Ifttt 自动化')", HTML)
-        self.assertIn('function findMeaningfulThemes(pts)', HTML)
-        self.assertIn('function sphericalKMeans(pts,k)', HTML)
-        self.assertIn('minThemeSize', HTML)
-        self.assertIn('cohesion>=THEME_MIN_COHESION', HTML)
-        self.assertIn('margin>=THEME_MIN_MARGIN', HTML)
-        self.assertIn('nameThemeFromContent', HTML)
-        self.assertNotIn('function detectPeaks(pts)', HTML)
-        self.assertNotIn("name=tt?tt[0].split('/').pop():'笔记'", HTML)
+        self.assertIn('function rebuildTopics(', HTML)  # 拉向量→聚类→LLM 命名→写缓存
+        self.assertIn('sb.functions.invoke(\'name-topics\'', HTML)  # 密钥在服务端
+        self.assertIn('members.length>=8', HTML)  # 淘汰小簇
+        self.assertNotIn('function findMeaningfulThemes(pts)', HTML)  # 旧中文分词聚类已删
+        self.assertNotIn('new UMAP(', HTML)  # 不再降维
 
     def test_cognitive_map_uses_real_chinese_word_segmentation(self):
         self.assertIn("new Intl.Segmenter('zh-CN',{granularity:'word'})", HTML)
@@ -266,27 +263,26 @@ class FrontendContractTests(unittest.TestCase):
 
     def test_semantic_text_excludes_dayone_ai_reply_without_altering_note(self):
         self.assertIn('function stripSemanticNoise(text)', HTML)
-        self.assertIn('stripSemanticNoise(stripBilinks(m.note.text||', HTML)
+        self.assertIn('stripSemanticNoise(m.text).slice(0,120)', HTML)  # 重建时净化后截取代表摘要
         self.assertIn('function stripSemanticNoise(text: string)', EDGE)
         self.assertIn('🐰月儿来信', EDGE)
         self.assertIn('input: semanticText.slice(0, 8000)', EDGE)
 
-    def test_cognitive_map_renders_per_theme_fences_and_explains_them(self):
-        self.assertIn('function renderThemeFence(', HTML)
-        self.assertIn('themes.filter(theme=>theme.qualified)', HTML)
-        self.assertIn('id="mapThemePanel"', HTML)
-        self.assertIn('代表笔记', HTML)
-        self.assertIn('function showMapTheme(theme)', HTML)
-        self.assertIn('data-map-note-id', HTML)
-        self.assertNotIn('// 等高线（按密度）', HTML)
+    def test_cognitive_map_renders_topic_cards_with_time_distribution(self):
+        self.assertIn('function renderTopicCards(', HTML)
+        self.assertIn('function topicCardHTML(', HTML)
+        self.assertIn('year_counts', HTML)  # 年度分布
+        self.assertIn('map-topic-card', HTML)
+        self.assertIn('function showTopicDetail(', HTML)  # 点卡片看相关笔记
+        self.assertIn('可能被你忽略的反复话题', HTML)
+        self.assertIn('function rebuildTopics(', HTML)
 
-    def test_cognitive_map_supports_pan_pinch_and_zoom_controls(self):
-        for element_id in ('mapZoomIn', 'mapZoomOut', 'mapZoomReset'):
-            self.assertIn(f'id="{element_id}"', HTML)
-        self.assertIn('d3.zoom().scaleExtent([0.6,8])', HTML)
-        self.assertIn("svg.call(mapZoomBehavior)", HTML)
-        self.assertIn('function resetMapZoom()', HTML)
-        self.assertIn('touch-action:none', HTML)
+    def test_cognitive_map_llm_key_not_in_frontend(self):
+        # 安全契约：LLM 密钥绝不进前端，命名走 Edge Function
+        self.assertNotIn('deepseek', HTML.lower())  # 前端不出现模型名/密钥
+        self.assertIn('sb.functions.invoke(\'name-topics\'', HTML)
+        self.assertIn("Deno.env.get('OPENAI_API_KEY')", EDGE_NAMETOPICS)  # 密钥只在 secrets
+        self.assertNotIn('sk-', EDGE_NAMETOPICS)  # 函数源码无明文 key
 
     def test_mobile_fullscreen_surface(self):
         self.assertNotIn('<span class="topbar-brand">闪念笔记</span>', HTML)
