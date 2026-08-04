@@ -159,7 +159,7 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("function showNoteMenu(btn,id)", HTML)
         self.assertIn("if(action==='pin')togglePin(id)", HTML)
         self.assertIn("if(action==='reference-create')referenceAndCreate(id)", HTML)
-        self.assertIn("if(action==='insight')openInsight(id)", HTML)
+        self.assertIn("if(action==='insight')openInsightFromMenu(id)", HTML)
         self.assertIn("if(action==='restore')restoreNotes([id])", HTML)
         self.assertIn("confirmDelete(id)", HTML)
         self.assertNotIn('detail-menu-item', HTML)
@@ -209,10 +209,20 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn('.side-trash-entry', HTML)
 
     def test_wander_fullscreen_and_return_to_wander_after_edit(self):
-        self.assertIn('id="wanderFs"', HTML)
-        self.assertIn('requestFullscreen', HTML)
-        # 从漫步编辑后返回应回到漫步页
+        # 全屏=卡片右下角「展开」用详情页放大看，返回回漫步（不用浏览器 requestFullscreen）
+        self.assertIn('data-wander-expand', HTML)
         self.assertIn('detailReturnToWander', HTML)
+        self.assertNotIn('requestFullscreen', HTML)
+
+    def test_insight_batch_tag_is_wired(self):
+        self.assertIn('id="insightSelectAll"', HTML)
+        self.assertIn('id="insightActionbar"', HTML)
+        self.assertIn('id="batchTagMask"', HTML)
+        self.assertIn('function mergeTags(existing,added)', HTML)
+        self.assertIn('setupTagSuggest(batchTagInput)', HTML)
+        # 追加而非覆盖：先取最新 tags 再合并，乐观锁更新
+        self.assertIn(".select('id,tags,updated_at')", HTML)
+        self.assertIn('.update({tags:merged})', HTML)
 
     def test_tag_suggest_is_bound_to_all_tag_inputs(self):
         self.assertIn("function setupTagSuggest(inp)", HTML)

@@ -77,7 +77,7 @@ input,textarea{font-family:inherit;outline:none;border:none}
 .heatmap-week span{font-family:var(--mono);font-size:8px;color:var(--side-text-3);text-align:center}
 .heatmap-months{display:flex;justify-content:space-between;margin-top:4px;font-family:var(--mono);font-size:8px;color:var(--side-text-3)}
 
-.tree{flex:1 1 auto;min-height:180px;overflow-y:auto;padding:6px 8px 16px;list-style:none}
+.tree{flex:1 1 auto;min-height:280px;overflow-y:auto;padding:6px 8px 16px;list-style:none}
 .tree::-webkit-scrollbar{width:5px}
 .tree::-webkit-scrollbar-thumb{background:#555;border-radius:3px}
 .side-map-entry{margin:2px 16px 8px;display:flex;align-items:center;gap:7px;padding:7px 12px;border:1px solid var(--side-border);border-radius:3px;font-size:12.5px;color:var(--side-text-2);cursor:pointer;transition:border-color .15s,color .15s,background .15s;flex-shrink:0}
@@ -529,27 +529,63 @@ input,textarea{font-family:inherit;outline:none;border:none}
 /* ============ INSIGHT PAGE ============ */
 .insight-mask{position:fixed;inset:0;z-index:242;background:var(--bg);transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden}
 .insight-mask.show{transform:translateX(0)}
-.insight-topbar{height:var(--topbar-h);flex-shrink:0;display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid var(--border-soft)}
-.insight-back{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text-2);padding:6px 10px;border-radius:7px;transition:background .15s,color .15s}
+.insight-topbar{height:var(--topbar-h);flex-shrink:0;padding:0;border-bottom:1px solid var(--border-soft)}
+.insight-topbar-inner{width:100%;max-width:640px;height:100%;margin:0 auto;padding:0 20px;display:flex;align-items:center;gap:8px}
+.insight-back{flex-shrink:0;display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text-2);padding:6px 10px;border-radius:7px;transition:background .15s,color .15s}
 .insight-back:hover{background:var(--hover-bg);color:var(--text)}
-.insight-title{font-family:var(--mono);font-size:11px;color:var(--text-3);letter-spacing:2px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.insight-title{font-family:var(--mono);font-size:11px;color:var(--text-3);letter-spacing:2px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.insight-count{flex-shrink:0;font-family:var(--mono);font-size:11px;color:var(--text-3)}
+.insight-select-all{flex-shrink:0;font-size:12px;color:var(--text-2);padding:6px 8px;border-radius:6px}
+.insight-select-all:hover{color:var(--text);background:var(--hover-bg)}
 .insight-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0}
 .insight-inner{max-width:640px;margin:0 auto;padding:20px 20px 80px}
 .insight-source{margin-bottom:6px}
 .insight-source .card{cursor:default}
-.insight-source-kicker,.insight-list-kicker{font-family:var(--mono);font-size:10px;color:var(--text-3);letter-spacing:1.5px;text-transform:uppercase;padding:14px 0 8px 4px;display:flex;align-items:center;gap:8px}
-.insight-source-kicker::after,.insight-list-kicker::after{content:"";flex:1;height:1px;background:var(--border-soft)}
+/* 「源笔记/关联笔记」标识与首页日期分隔线同款：竖杠+文字+横线 */
+.insight-source-kicker,.insight-list-kicker{position:relative;display:flex;align-items:center;gap:8px;padding:12px 0 8px 12px;font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:1px;color:var(--text-2)}
+.insight-source-kicker::before,.insight-list-kicker::before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:16px;border-radius:1px;background:#4A4A4A}
+.insight-source-kicker::after,.insight-list-kicker::after{content:"";flex:1;height:1px;background:var(--border)}
 .insight-rel{position:relative}
 .insight-rank{position:absolute;left:-6px;top:-6px;z-index:3;font-family:var(--mono);font-size:10px;font-weight:600;color:#fff;background:#4A4A4A;min-width:20px;height:20px;border-radius:10px;display:flex;align-items:center;justify-content:center;padding:0 5px;box-shadow:0 1px 3px rgba(0,0,0,.2)}
 .insight-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:50px 20px;color:var(--text-3);gap:10px;text-align:center}
 .insight-empty p{font-family:var(--mono);font-size:12px;letter-spacing:.5px}
+/* 批量选择：左侧选择列 */
+.insight-row{display:grid;grid-template-columns:28px minmax(0,1fr);gap:6px;align-items:start;margin-bottom:2px}
+.insight-card-wrap{position:relative;min-width:0}
+.insight-check{width:24px;height:24px;margin-top:12px;border:1px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;color:transparent;background:var(--bg);transition:background .15s,border-color .15s,color .15s;cursor:pointer}
+.insight-check.on{color:#fff;background:#4A4A4A;border-color:#4A4A4A}
+/* 批量操作条 */
+.insight-actionbar{position:fixed;left:50%;bottom:18px;transform:translate(-50%,80px);z-index:646;display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--border);border-radius:24px;box-shadow:0 8px 28px rgba(0,0,0,.16);padding:6px 8px;transition:transform .25s cubic-bezier(.4,0,.2,1)}
+.insight-actionbar.show{transform:translate(-50%,0)}
+.insight-actionbar .sel-count{font-family:var(--mono);font-size:11px;color:var(--text-2);padding:0 8px}
+.insight-act{font-size:13px;padding:7px 14px;border-radius:16px;transition:background .15s;color:var(--text)}
+.insight-act:hover{background:var(--hover-bg)}
+.insight-act.primary{background:#4A4A4A;color:#fff}
+.insight-act.primary:hover{opacity:.92}
 @media(max-width:768px){
-  .insight-topbar{padding:0 10px}
-  .insight-inner{padding:16px 14px 80px}
+  .insight-topbar-inner{padding:0 14px}
+  .insight-inner{padding:16px 14px 96px}
 }
-@media(min-width:769px){
-  /* 洞察页返回键与 640px 内容区对齐，不跑最左 */
-  .insight-topbar{padding:0 calc(50% - 340px)}
+
+/* ============ BATCH TAG DIALOG ============ */
+.batch-tag-mask{position:fixed;inset:0;z-index:680;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px);padding:20px}
+.batch-tag-mask.show{display:flex}
+.batch-tag-dialog{width:100%;max-width:400px;background:var(--bg);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.2);padding:22px 22px 18px}
+.batch-tag-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px}
+.batch-tag-desc{font-size:12.5px;color:var(--text-2);margin-bottom:16px;line-height:1.5}
+.batch-tag-input-wrap{display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:9px;padding:10px 12px;transition:border-color .15s}
+.batch-tag-input-wrap:focus-within{border-color:#999}
+.batch-tag-input-wrap span{font-family:var(--mono);color:var(--text-3);font-size:14px}
+.batch-tag-input-wrap input{flex:1;min-width:0;font-size:14px;color:var(--text);background:transparent}
+.batch-tag-input-wrap input::placeholder{color:var(--text-3)}
+.batch-tag-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+.batch-tag-submit{font-size:13px;color:#fff;background:#4A4A4A;padding:8px 20px;border-radius:9px;transition:opacity .15s;box-shadow:0 2px 8px rgba(0,0,0,.14)}
+.batch-tag-submit:hover{opacity:.92}
+.batch-tag-submit:disabled{opacity:.4}
+/* 标签建议下拉要高于对话框 */
+#tagSuggestDropdown{z-index:690}
+@media(max-width:768px){
+  .batch-tag-dialog{padding:18px 18px 16px}
 }
 
 /* ============ TRASH PAGE ============ */
@@ -589,8 +625,6 @@ input,textarea{font-family:inherit;outline:none;border:none}
 .wander-back:hover{background:var(--hover-bg);color:var(--text)}
 .wander-title{font-family:var(--mono);font-size:11px;color:var(--text-3);letter-spacing:2px;flex:1}
 .wander-count{font-family:var(--mono);font-size:11px;color:var(--text-2)}
-.wander-fs{width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--text-2);transition:background .15s,color .15s}
-.wander-fs:hover{background:var(--hover-bg);color:var(--text)}
 .wander-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:0;position:relative;overflow:hidden;padding:24px 20px 0}
 .wander-deck{position:relative;width:min(560px,100%);height:min(62vh,560px);perspective:1200px}
 .wander-card{
@@ -610,6 +644,10 @@ input,textarea{font-family:inherit;outline:none;border:none}
 .wander-card-text img{max-width:100%;border-radius:8px;margin-top:8px}
 .wander-card-tags{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--border-soft)}
 .wander-card-tag{font-family:var(--mono);font-size:11px;color:var(--text-2);padding:2px 7px;border-radius:2px;background:var(--tag-bg);cursor:default}
+.wander-card-foot{flex-shrink:0;display:flex;align-items:flex-end;gap:10px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border-soft)}
+.wander-card-foot .wander-card-tags{flex:1;min-width:0;margin:0;padding:0;border:0}
+.wander-expand{flex-shrink:0;font-family:var(--mono);font-size:11px;color:var(--text-2);padding:5px 9px;border-radius:3px;background:var(--tag-bg);transition:background .15s,color .15s}
+.wander-expand:hover{color:#fff;background:#4A4A4A}
 .wander-card-menu{position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text-3);background:var(--bg);transition:background .15s,color .15s;z-index:2}
 .wander-card-menu:hover{background:var(--hover-bg);color:var(--text)}
 .wander-foot{flex-shrink:0;width:min(560px,100%);padding:20px 0 calc(20px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:10px}
@@ -794,7 +832,6 @@ input,textarea{font-family:inherit;outline:none;border:none}
     <button class="wander-back" id="wanderBack"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg><span>返回</span></button>
     <div class="wander-title">随机漫步</div>
     <span class="wander-count" id="wanderCount"></span>
-    <button class="wander-fs" id="wanderFs" title="全屏" aria-label="全屏"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
   </div>
   <div class="wander-body">
     <div class="wander-deck" id="wanderDeck"></div>
@@ -823,10 +860,31 @@ input,textarea{font-family:inherit;outline:none;border:none}
 <!-- ===== INSIGHT PAGE ===== -->
 <div class="insight-mask" id="insightMask">
   <div class="insight-topbar">
-    <button class="insight-back" id="insightBack"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg><span>返回</span></button>
-    <div class="insight-title" id="insightTitle">洞察</div>
+    <div class="insight-topbar-inner">
+      <button class="insight-back" id="insightBack"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg><span>返回</span></button>
+      <div class="insight-title" id="insightTitle">洞察</div>
+      <span class="insight-count" id="insightCount"></span>
+      <button class="insight-select-all" id="insightSelectAll">全选</button>
+    </div>
   </div>
   <div class="insight-body" id="insightBody"></div>
+</div>
+<div class="insight-actionbar" id="insightActionbar">
+  <span class="sel-count" id="insightSelCount">已选 0</span>
+  <button class="insight-act primary" id="insightBatchTagBtn">添加标签</button>
+</div>
+
+<!-- ===== BATCH TAG DIALOG ===== -->
+<div class="batch-tag-mask" id="batchTagMask">
+  <div class="batch-tag-dialog">
+    <div class="batch-tag-title">添加标签</div>
+    <div class="batch-tag-desc" id="batchTagDesc">为所选笔记追加标签，不会移除原有标签</div>
+    <label class="batch-tag-input-wrap"><span>#</span><input type="text" id="batchTagInput" placeholder="空格分隔标签，/ 表示层级" autocomplete="off"></label>
+    <div class="batch-tag-actions">
+      <button class="btn-cancel" id="batchTagCancel">取消</button>
+      <button class="batch-tag-submit" id="batchTagSubmit">添加</button>
+    </div>
+  </div>
 </div>
 
 <!-- ===== CONFIRM / TOAST ===== -->
@@ -1143,7 +1201,7 @@ noteMenuPop.addEventListener('click',e=>{
   if(action==='pin')togglePin(id);
   if(action==='edit')openDetailEdit(id);
   if(action==='reference-create')referenceAndCreate(id);
-  if(action==='insight')openInsight(id);
+  if(action==='insight')openInsightFromMenu(id);
   if(action==='restore')restoreNotes([id]);
   if(action==='delete'){
     if(trashMask.classList.contains('show'))confirmHardDelete([id]);
@@ -1489,7 +1547,7 @@ function wanderCardHTML(n){
   return `<button class="wander-card-menu" data-wander-menu="${Number(n.id)}" title="更多"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg></button>
   <div class="wander-card-date"><span class="dot"></span>${fmtDate(noteDate(n)).sub} · ${fmtTime(n.time)}</div>
   <div class="wander-card-text">${renderMD(n.text)}</div>
-  ${tags?`<div class="wander-card-tags">${tags}</div>`:''}`;
+  <div class="wander-card-foot"><div class="wander-card-tags">${tags}</div><button class="wander-expand" data-wander-expand="${Number(n.id)}">展开</button></div>`;
 }
 function renderWanderDeck(){
   wanderDeck.innerHTML='';
@@ -1534,15 +1592,12 @@ function openWander(){closeSidebarMobile();hideNoteMenu();wanderMask.classList.a
 function closeWander(){wanderSession++;hideNoteMenu();wanderMask.classList.remove('show')}
 document.getElementById('wanderEntry').addEventListener('click',openWander);
 document.getElementById('wanderBack').addEventListener('click',closeWander);
-document.getElementById('wanderFs').addEventListener('click',()=>{
-  const el=wanderMask;
-  if(!document.fullscreenElement){(el.requestFullscreen||el.webkitRequestFullscreen).call(el)}
-  else{(document.exitFullscreen||document.webkitExitFullscreen).call(document)}
-});
 wanderNext.addEventListener('click',wanderAdvance);
 wanderDeck.addEventListener('click',function(e){
   const menu=e.target.closest('[data-wander-menu]');
   if(menu){e.stopPropagation();e.preventDefault();showNoteMenu(menu,parseInt(menu.dataset.wanderMenu));return}
+  const expand=e.target.closest('[data-wander-expand]');
+  if(expand){e.stopPropagation();e.preventDefault();detailReturnToWander=true;closeWander();openDetail(Number(expand.dataset.wanderExpand));return}
   const bilink=e.target.closest('.bilink[data-note-id]');
   if(bilink){e.preventDefault();closeWander();openDetail(Number(bilink.dataset.noteId));return}
 });
@@ -1632,7 +1687,9 @@ async function openInsight(id){
   const n=notes.find(x=>x.id===id);if(!n)return;
   if(insightMask.classList.contains('show')&&insightSourceId!==null&&insightSourceId!==id)insightStack.push(insightSourceId);
   insightSourceId=id;hideNoteMenu();closeSidebarMobile();
+  insightSelected.clear();updateInsightActionbar();
   insightTitle.textContent='洞察 · '+noteLinkLabel(n).slice(0,14);
+  document.getElementById('insightCount').textContent='';
   insightMask.classList.add('show');
   insightBody.innerHTML='<div class="insight-inner"><div class="insight-empty"><p style="animation:pulse 1.5s ease-in-out infinite">正在寻找关联笔记...</p></div></div>';
   renderInsightSource(n);
@@ -1645,30 +1702,51 @@ async function openInsight(id){
     insightBody.innerHTML='<div class="insight-inner"><div class="insight-empty"><p>关联计算失败</p><p style="font-size:11px">'+escapeHTML(String(e.message||e))+'</p></div></div>';return;
   }
   if(insightSourceId!==id)return;
-  renderInsightList(n,rows.map(dbRowToNote));
+  insightRelated=rows.map(r=>notes.find(x=>x.id===r.id)||dbRowToNote(r));
+  renderInsightList(n,insightRelated);
 }
 
+function insightCheckHTML(id){return `<button class="insight-check${insightSelected.has(id)?' on':''}" data-check-id="${Number(id)}" aria-label="选择"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></button>`}
+
 function renderInsightSource(n){
-  insightBody.innerHTML=`<div class="insight-inner"><div class="insight-source-kicker">源笔记</div><div class="insight-source">${cardHTML(n)}</div><div class="insight-list-kicker">关联笔记</div><div id="insightList"></div></div>`;
+  insightBody.innerHTML=`<div class="insight-inner"><div class="insight-source-kicker">源笔记</div><div class="insight-source"><div class="insight-row" data-note-id="${Number(n.id)}">${insightCheckHTML(n.id)}<div class="insight-card-wrap">${cardHTML(n)}</div></div></div><div class="insight-list-kicker">关联笔记</div><div id="insightList"></div></div>`;
 }
 
 function renderInsightList(source,related){
   const list=document.getElementById('insightList');if(!list||insightSourceId!==source.id)return;
-  // 若源笔记在本地列表中已被编辑/删除，源卡片同步刷新
   const fresh=notes.find(x=>x.id===source.id);
-  if(fresh){const src=insightBody.querySelector('.insight-source');if(src)src.innerHTML=cardHTML(fresh)}
+  if(fresh){const src=insightBody.querySelector('.insight-source .insight-card-wrap');if(src)src.innerHTML=cardHTML(fresh)}
+  document.getElementById('insightCount').textContent=related.length+' 条关联';
   if(!related.length){list.innerHTML='<div class="insight-empty"><p>这条笔记还没有找到足够近的邻居</p><p style="font-size:11px">多写几条，或等待向量计算完成</p></div>';return}
-  list.innerHTML=related.map((n,i)=>`<div class="insight-rel"><span class="insight-rank">${i+1}</span>${cardHTML(n)}</div>`).join('');
+  list.innerHTML=related.map((n,i)=>`<div class="insight-row" data-note-id="${Number(n.id)}">${insightCheckHTML(n.id)}<div class="insight-card-wrap"><span class="insight-rank">${i+1}</span>${cardHTML(n)}</div></div>`).join('');
 }
+
+function updateInsightActionbar(){
+  const n=insightSelected.size;
+  document.getElementById('insightSelCount').textContent='已选 '+n;
+  document.getElementById('insightActionbar').classList.toggle('show',n>0);
+}
+document.getElementById('insightSelectAll').addEventListener('click',()=>{
+  const allIds=[insightSourceId,...insightRelated.map(n=>n.id)].filter(Boolean);
+  const allSelected=allIds.every(id=>insightSelected.has(id));
+  if(allSelected){allIds.forEach(id=>insightSelected.delete(id))}
+  else{allIds.forEach(id=>insightSelected.add(id))}
+  // 重新渲染复选框状态
+  insightBody.querySelectorAll('.insight-check').forEach(c=>{const id=parseInt(c.dataset.checkId);c.classList.toggle('on',insightSelected.has(id))});
+  document.getElementById('insightSelectAll').textContent=allSelected?'全选':'取消全选';
+  updateInsightActionbar();
+});
 
 function closeInsight(){
   const prev=insightStack.pop();
   if(prev!==undefined&&notes.find(x=>x.id===prev)){openInsight(prev);return}
-  insightMask.classList.remove('show');insightSourceId=null;
+  closeInsightAll();
 }
 document.getElementById('insightBack').addEventListener('click',closeInsight);
 
 insightBody.addEventListener('click',function(e){
+  const check=e.target.closest('.insight-check');
+  if(check){e.stopPropagation();const id=parseInt(check.dataset.checkId);insightSelected.has(id)?insightSelected.delete(id):insightSelected.add(id);check.classList.toggle('on');updateInsightActionbar();return}
   const menuBtn=e.target.closest('.card-menu-btn');
   if(menuBtn){e.stopPropagation();e.preventDefault();showNoteMenu(menuBtn,parseInt(menuBtn.dataset.noteId));return}
   const tag=e.target.closest('.card-tag');
@@ -1676,7 +1754,73 @@ insightBody.addEventListener('click',function(e){
   const card=e.target.closest('.card');
   if(card&&card.dataset.id)openDetail(parseInt(card.dataset.id));
 });
-function closeInsightAll(){insightStack.length=0;insightMask.classList.remove('show');insightSourceId=null}
+function closeInsightAll(){
+  insightStack.length=0;insightMask.classList.remove('show');insightSourceId=null;
+  insightRelated=[];insightSelected.clear();updateInsightActionbar();
+  document.getElementById('insightSelectAll').textContent='全选';
+  if(insightReturnToWander){insightReturnToWander=false;wanderMask.classList.add('show')}
+}
+
+/* 从菜单进入洞察：详情页 z-250 高于洞察页 242，需先关详情；处理 detailReturnToWander 避免漫步盖住洞察 */
+function openInsightFromMenu(id){
+  if(detailMask.classList.contains('show')){
+    const wasReturningToWander=detailReturnToWander;
+    detailReturnToWander=false;
+    closeDetail();
+    if(wasReturningToWander)insightReturnToWander=true;
+  }
+  openInsight(id);
+}
+
+/* ============ BATCH TAG ============ */
+let insightRelated=[],insightSelected=new Set(),insightBatchBusy=false,insightReturnToWander=false;
+const batchTagMask=document.getElementById('batchTagMask'),batchTagInput=document.getElementById('batchTagInput');
+setupTagSuggest(batchTagInput);
+function mergeTags(existing,added){return [...new Set([...(existing||[]),...added])]}
+document.getElementById('insightBatchTagBtn').addEventListener('click',()=>{
+  if(!insightSelected.size)return;
+  batchTagInput.value='';
+  document.getElementById('batchTagDesc').textContent=`为 ${insightSelected.size} 条笔记追加标签，不会移除原有标签`;
+  batchTagMask.classList.add('show');
+  setTimeout(()=>batchTagInput.focus(),100);
+});
+document.getElementById('batchTagCancel').addEventListener('click',()=>batchTagMask.classList.remove('show'));
+batchTagMask.addEventListener('click',e=>{if(e.target===batchTagMask)batchTagMask.classList.remove('show')});
+document.getElementById('batchTagSubmit').addEventListener('click',async()=>{
+  if(insightBatchBusy)return;
+  const newTags=[...new Set(parseTags(batchTagInput.value))];
+  if(!newTags.length){showToast('请输入至少一个标签');return}
+  const ids=[...insightSelected];
+  insightBatchBusy=true;const submitBtn=document.getElementById('batchTagSubmit');submitBtn.disabled=true;submitBtn.textContent='添加中...';
+  try{
+    // 先取最新 tags+updated_at，避免覆盖并发修改
+    const {data:rows,error}=await sb.from('notes').select('id,tags,updated_at').in('id',ids).is('deleted_at',null);
+    if(error)throw error;
+    let ok=0,fail=0,nochange=0;
+    await Promise.allSettled((rows||[]).map(async row=>{
+      const merged=mergeTags(row.tags,newTags);
+      if(merged.length===(row.tags||[]).length){nochange++;return}
+      const {data,error:uerr}=await sb.from('notes').update({tags:merged}).eq('id',row.id).eq('updated_at',row.updated_at).select('id,tags,updated_at');
+      if(uerr||!data||!data.length){fail++;return}
+      ok++;
+      // 同步本地
+      const saved=data[0];const local=notes.find(n=>n.id===row.id);if(local){local.tags=saved.tags;local.updated_at=saved.updated_at}
+      const rel=insightRelated.find(n=>n.id===row.id);if(rel){rel.tags=saved.tags;rel.updated_at=saved.updated_at}
+    }));
+    batchTagMask.classList.remove('show');
+    invalidateVecs();renderTree();render();
+    // 重新渲染洞察页（标签变了，向量不变，不重算近邻）
+    if(insightSourceId!==null){const src=notes.find(n=>n.id===insightSourceId);if(src){renderInsightSource(src);renderInsightList(src,insightRelated)}}
+    const failedIds=ids.filter(id=>{const r=(rows||[]).find(x=>x.id===id);return r&&(mergeTags(r.tags,newTags).length>(r.tags||[]).length)&&!notes.find(n=>n.id===id&&newTags.every(t=>n.tags.includes(t)))});
+    insightSelected.clear();failedIds.forEach(id=>insightSelected.add(id));
+    insightBody.querySelectorAll('.insight-check').forEach(c=>{const id=parseInt(c.dataset.checkId);c.classList.toggle('on',insightSelected.has(id))});
+    updateInsightActionbar();
+    if(fail>0)showToast(`成功 ${ok} 条，${fail} 条失败，请重试`);
+    else if(ok>0)showToast(`已为 ${ok} 条笔记添加标签`);
+    else if(nochange>0)showToast('所选笔记已有这些标签');
+  }catch(e){showToast('添加失败，请检查网络后重试')}
+  finally{insightBatchBusy=false;submitBtn.disabled=false;submitBtn.textContent='添加'}
+});
 
 /* ============ @ MENTION ============ */
 let mentionState={active:false,textarea:null,results:[],selectedIndex:0,start:0};
