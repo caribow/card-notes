@@ -4,6 +4,10 @@ from pathlib import Path
 
 HTML = Path(__file__).parents[1].joinpath("index.html").read_text(encoding="utf-8")
 EDGE = Path(__file__).parents[1].joinpath("supabase/functions/embed-note/index.ts").read_text(encoding="utf-8")
+MIGRATION_SQL = "\n".join(
+    p.read_text(encoding="utf-8")
+    for p in sorted(Path(__file__).parents[1].joinpath("supabase/migrations").glob("*.sql"))
+)
 
 
 class FrontendContractTests(unittest.TestCase):
@@ -167,6 +171,27 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn('class="heatmap-cell heat-empty"', HTML)
         self.assertNotIn('class="heatmap-cell empty"', HTML)
         self.assertIn('.heatmap-cell.heat-empty{', HTML)
+
+    def test_wander_is_wired_and_uses_shared_menu(self):
+        self.assertIn('id="wanderEntry"', HTML)
+        self.assertIn('id="wanderMask"', HTML)
+        self.assertIn('async function buildWanderList()', HTML)
+        self.assertIn('WANDER_MAX', HTML)
+        # 菜单弹层必须高于所有全屏页（240-250），否则被盖住
+        self.assertIn('.card-menu-pop{position:fixed;z-index:650', HTML)
+        # 从漫步跳转编辑/引用/洞察前先关闭漫步页
+        self.assertIn("closeWander()", HTML)
+        # 日期临近用环形月日距离，不是 m*31+d
+        self.assertIn('function monthDayDistance(a,b)', HTML)
+        self.assertNotIn('m*31+d', HTML)
+
+    def test_recycle_bin_is_wired(self):
+        self.assertIn("alter table public.notes add column if not exists deleted_at", MIGRATION_SQL)
+        self.assertIn("is('deleted_at',null)", HTML)
+        self.assertIn('id="trashEntry"', HTML)
+        self.assertIn('id="trashMask"', HTML)
+        self.assertIn('async function restoreNotes(ids)', HTML)
+        self.assertIn('async function hardDeleteNotes(ids)', HTML)
 
     def test_tag_suggest_is_bound_to_all_tag_inputs(self):
         self.assertIn("function setupTagSuggest(inp)", HTML)
