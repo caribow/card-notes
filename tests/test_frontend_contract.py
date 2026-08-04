@@ -192,6 +192,28 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn('async function restoreNotes(ids)', HTML)
         self.assertIn('async function hardDeleteNotes(ids)', HTML)
 
+    def test_note_menu_scenario_is_strictly_separated(self):
+        # hidden 属性会被 display:flex 覆盖，必须有 [hidden]{display:none!important} 兜底
+        self.assertIn('.card-menu-item[hidden]{display:none !important}', HTML)
+        # 回收站只显示「恢复」；非回收站显示五项、隐藏「恢复」
+        self.assertIn("if(inTrash){it.hidden=(a!=='restore')}", HTML)
+        self.assertIn("else{it.hidden=(a==='restore')}", HTML)
+
+    def test_trash_entry_is_below_tag_tree_not_wander(self):
+        # 回收站在标签树下方（与认知地图/随机漫步同级的条目，但不随标签滑动）
+        wander_pos = HTML.index('id="wanderEntry"')
+        tree_pos = HTML.index('id="tree"')
+        trash_pos = HTML.index('id="trashEntry"')
+        self.assertLess(wander_pos, tree_pos)
+        self.assertLess(tree_pos, trash_pos)
+        self.assertIn('.side-trash-entry', HTML)
+
+    def test_wander_fullscreen_and_return_to_wander_after_edit(self):
+        self.assertIn('id="wanderFs"', HTML)
+        self.assertIn('requestFullscreen', HTML)
+        # 从漫步编辑后返回应回到漫步页
+        self.assertIn('detailReturnToWander', HTML)
+
     def test_tag_suggest_is_bound_to_all_tag_inputs(self):
         self.assertIn("function setupTagSuggest(inp)", HTML)
         self.assertIn("setupTagSuggest(document.getElementById('noteTags'))", HTML)
@@ -355,7 +377,7 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("draftKey=activeModalDraftKey", modal_upload.group(0))
         self.assertIn("removeStoragePaths(paths", modal_upload.group(0))
         self.assertRegex(HTML, r"function closeModal\(\)\{modalEditSession\+\+")
-        self.assertRegex(HTML, r"function closeDetail\(\)\{detailEditSession\+\+")
+        self.assertRegex(HTML, r"function closeDetail\(\)\{[\s\S]*?detailEditSession\+\+")
         self.assertIn("clearDraftIfRevision(draftKey,draftRevision)", HTML)
         self.assertIn("clearDraftIfRevision(quickKey,quickRevision)", HTML)
         self.assertIn("touchDraftRevision(quickDraftKey())", HTML)

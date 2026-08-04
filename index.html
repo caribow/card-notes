@@ -77,12 +77,14 @@ input,textarea{font-family:inherit;outline:none;border:none}
 .heatmap-week span{font-family:var(--mono);font-size:8px;color:var(--side-text-3);text-align:center}
 .heatmap-months{display:flex;justify-content:space-between;margin-top:4px;font-family:var(--mono);font-size:8px;color:var(--side-text-3)}
 
-.tree{flex:1;overflow-y:auto;padding:6px 8px 16px;list-style:none}
+.tree{flex:1 1 auto;min-height:180px;overflow-y:auto;padding:6px 8px 16px;list-style:none}
 .tree::-webkit-scrollbar{width:5px}
 .tree::-webkit-scrollbar-thumb{background:#555;border-radius:3px}
-.side-map-entry{margin:2px 16px 8px;display:flex;align-items:center;gap:7px;padding:7px 12px;border:1px solid var(--side-border);border-radius:3px;font-size:12.5px;color:var(--side-text-2);cursor:pointer;transition:border-color .15s,color .15s,background .15s}
+.side-map-entry{margin:2px 16px 8px;display:flex;align-items:center;gap:7px;padding:7px 12px;border:1px solid var(--side-border);border-radius:3px;font-size:12.5px;color:var(--side-text-2);cursor:pointer;transition:border-color .15s,color .15s,background .15s;flex-shrink:0}
 .side-map-entry:hover{border-color:#666;color:#EDEDED;background:var(--side-hover)}
 .side-map-entry svg{flex-shrink:0}
+/* 回收站钉在标签树下方，不随标签滑动 */
+.side-trash-entry{margin:2px 16px 8px;border-top:1px solid var(--side-border);border-radius:0 0 3px 3px;padding-top:10px}
 .tree-item{margin:1px 0}
 .tree-row{
   display:flex;align-items:center;gap:6px;padding:6px 10px 6px 13px;border-radius:3px;
@@ -246,6 +248,7 @@ input,textarea{font-family:inherit;outline:none;border:none}
 .card-menu-pop{position:fixed;z-index:650;background:var(--bg);border:1px solid var(--border);border-radius:9px;box-shadow:0 8px 28px rgba(0,0,0,.14);padding:4px;min-width:130px;display:none}
 .card-menu-pop.show{display:block}
 .card-menu-item{padding:8px 14px;font-size:13px;color:var(--text);border-radius:6px;cursor:pointer;transition:background .12s;display:flex;align-items:center;gap:7px}
+.card-menu-item[hidden]{display:none !important}
 .card-menu-item:hover{background:var(--hover-bg)}
 .card-menu-item.danger{color:var(--red)}
 .card-menu-item.danger:hover{background:rgba(239,68,68,.08)}
@@ -544,6 +547,10 @@ input,textarea{font-family:inherit;outline:none;border:none}
   .insight-topbar{padding:0 10px}
   .insight-inner{padding:16px 14px 80px}
 }
+@media(min-width:769px){
+  /* 洞察页返回键与 640px 内容区对齐，不跑最左 */
+  .insight-topbar{padding:0 calc(50% - 340px)}
+}
 
 /* ============ TRASH PAGE ============ */
 .trash-mask{position:fixed;inset:0;z-index:241;background:var(--bg);transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden}
@@ -582,6 +589,8 @@ input,textarea{font-family:inherit;outline:none;border:none}
 .wander-back:hover{background:var(--hover-bg);color:var(--text)}
 .wander-title{font-family:var(--mono);font-size:11px;color:var(--text-3);letter-spacing:2px;flex:1}
 .wander-count{font-family:var(--mono);font-size:11px;color:var(--text-2)}
+.wander-fs{width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--text-2);transition:background .15s,color .15s}
+.wander-fs:hover{background:var(--hover-bg);color:var(--text)}
 .wander-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:0;position:relative;overflow:hidden;padding:24px 20px 0}
 .wander-deck{position:relative;width:min(560px,100%);height:min(62vh,560px);perspective:1200px}
 .wander-card{
@@ -662,11 +671,11 @@ input,textarea{font-family:inherit;outline:none;border:none}
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="13" height="15" rx="2"/><path d="M8 4h11a2 2 0 0 1 2 2v13"/></svg>
       <span>随机漫步</span>
     </div>
-    <div class="side-map-entry" id="trashEntry" title="回收站">
+    <ul class="tree" id="tree"></ul>
+    <div class="side-map-entry side-trash-entry" id="trashEntry" title="回收站">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
       <span>回收站</span>
     </div>
-    <ul class="tree" id="tree"></ul>
     <div class="side-foot">
       <div class="side-foot-left">
         <button class="theme-toggle" id="logoutBtn" aria-label="退出登录" title="退出登录">
@@ -785,6 +794,7 @@ input,textarea{font-family:inherit;outline:none;border:none}
     <button class="wander-back" id="wanderBack"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg><span>返回</span></button>
     <div class="wander-title">随机漫步</div>
     <span class="wander-count" id="wanderCount"></span>
+    <button class="wander-fs" id="wanderFs" title="全屏" aria-label="全屏"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
   </div>
   <div class="wander-body">
     <div class="wander-deck" id="wanderDeck"></div>
@@ -1107,14 +1117,14 @@ const noteMenuPop=document.getElementById('noteMenuPop');let noteMenuNoteId=null
 function pinLabelHTML(container,id){const n=notes.find(x=>x.id===id);const lbl=container&&container.querySelector('.pin-label');if(lbl)lbl.textContent=n&&n.pinned_at?'取消置顶':'置顶'}
 function showNoteMenu(btn,id){
   noteMenuNoteId=id;pinLabelHTML(noteMenuPop,id);
-  // 每次打开都完整重建可见项：回收站上下文=编辑/恢复/彻底删除；其余=置顶/编辑/引用/洞察/删除
+  // 场景严格区分：回收站=仅「恢复」；其余=置顶/编辑/引用/洞察/删除
   const inTrash=trashMask.classList.contains('show');
   noteMenuPop.querySelectorAll('.card-menu-item').forEach(it=>{
     const a=it.dataset.action;
-    if(inTrash){it.hidden=!['edit','restore','delete'].includes(a)}
+    if(inTrash){it.hidden=(a!=='restore')}
     else{it.hidden=(a==='restore')}
   });
-  const delLbl=noteMenuPop.querySelector('.delete-label');if(delLbl)delLbl.textContent=inTrash?'彻底删除':'删除';
+  const delLbl=noteMenuPop.querySelector('.delete-label');if(delLbl)delLbl.textContent='删除';
   const r=btn.getBoundingClientRect(),pw=150;
   let l=r.right-pw;if(l<8)l=8;
   const items=[...noteMenuPop.querySelectorAll('.card-menu-item')].filter(it=>!it.hidden).length;
@@ -1129,7 +1139,7 @@ noteMenuPop.addEventListener('click',e=>{
   // 从漫步页跳转到编辑/引用/洞察前，先关闭漫步页（它们层级低于漫步，会被盖住）
   const fromWander=wanderMask.classList.contains('show');
   hideNoteMenu();if(!id)return;
-  if(fromWander&&['edit','reference-create','insight'].includes(action))closeWander();
+  if(fromWander&&['edit','reference-create','insight'].includes(action)){detailReturnToWander=(action==='edit');closeWander()}
   if(action==='pin')togglePin(id);
   if(action==='edit')openDetailEdit(id);
   if(action==='reference-create')referenceAndCreate(id);
@@ -1216,7 +1226,11 @@ async function renderDetailThumbs(){const count=document.getElementById('detailA
 async function removeDetailImg(i){const path=detailPendingImgs[i];if(!detailOriginalImgs.includes(path)&&!await removeStoragePaths([path]))return;detailPendingImgs.splice(i,1);persistDetailDraft();renderDetailThumbs()}
 async function handleDetailImages(e){const input=e.target,session=detailEditSession,noteId=currentDetailId,draftKey=editDraftKey(noteId),paths=await uploadImageFiles(Array.from(input.files));if(!isUploadSessionCurrent(session,detailEditSession,draftKey,editDraftKey(currentDetailId),detailMask.classList.contains('editing'))){await removeStoragePaths(paths,'已清理取消编辑后的图片');input.value='';return}detailPendingImgs.push(...paths);persistDetailDraft();renderDetailThumbs();input.value=''}
 function linkCardHTML(n){const p=stripBilinks(n.text).replace(/[#*`>]/g,'').replace(/\n/g,' ').slice(0,100);const tags=n.tags.map(t=>`<span class="link-card-tag">${escapeHTML(t)}</span>`).join('');return `<div class="link-card" data-note-id="${Number(n.id)}"><div class="link-card-ts">${fmtDate(noteDate(n)).sub} ${fmtTime(n.time)}</div><div class="link-card-txt">${escapeHTML(p)}</div><div class="link-card-tags">${tags}</div></div>`}
-function closeDetail(){detailEditSession++;detailMask.classList.remove('show');detailMask.classList.remove('editing')}
+let detailReturnToWander=false;
+function closeDetail(){
+  detailEditSession++;detailMask.classList.remove('show');detailMask.classList.remove('editing');
+  if(detailReturnToWander){detailReturnToWander=false;wanderMask.classList.add('show')}
+}
 async function cancelDetailEdit(){if(detailSaveInFlight){showToast('正在保存，请稍候');return}const session=++detailEditSession,noteId=currentDetailId,n=findLoadedNote(noteId);if(!n)return;const uploads=detailPendingImgs.filter(path=>!n.imgs.includes(path));if(!await removeStoragePaths(uploads))return;clearDraft(editDraftKey(noteId));if(session===detailEditSession&&currentDetailId===noteId)openDetail(noteId)}
 document.getElementById('detailBack').addEventListener('click',()=>{if(detailMask.classList.contains('editing'))cancelDetailEdit();else closeDetail()});
 document.getElementById('detailEditSave').addEventListener('click',async()=>{
@@ -1520,6 +1534,11 @@ function openWander(){closeSidebarMobile();hideNoteMenu();wanderMask.classList.a
 function closeWander(){wanderSession++;hideNoteMenu();wanderMask.classList.remove('show')}
 document.getElementById('wanderEntry').addEventListener('click',openWander);
 document.getElementById('wanderBack').addEventListener('click',closeWander);
+document.getElementById('wanderFs').addEventListener('click',()=>{
+  const el=wanderMask;
+  if(!document.fullscreenElement){(el.requestFullscreen||el.webkitRequestFullscreen).call(el)}
+  else{(document.exitFullscreen||document.webkitExitFullscreen).call(document)}
+});
 wanderNext.addEventListener('click',wanderAdvance);
 wanderDeck.addEventListener('click',function(e){
   const menu=e.target.closest('[data-wander-menu]');
