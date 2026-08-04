@@ -1115,21 +1115,16 @@ function renderPagination(totalPages,restCount){
     <button class="page-btn" id="pagePrev" ${currentPage<=1?'disabled':''} aria-label="上一页"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>上一页</button>
     <span class="page-num">${currentPage} / ${totalPages}</span>
     <button class="page-btn" id="pageNext" ${currentPage>=totalPages?'disabled':''} aria-label="下一页">下一页<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></button>
-    <button class="page-top" id="pageBottom" title="回到底部" aria-label="回到底部"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg></button>`;
+    <button class="page-top" id="pageTop" title="回到顶部" aria-label="回到顶部"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>`;
   document.getElementById('pageHome').onclick=()=>{if(currentPage>1){currentPage=1;render();scrollContentTop()}};
   document.getElementById('pagePrev').onclick=()=>{if(currentPage>1){currentPage--;render();scrollContentTop()}};
   document.getElementById('pageNext').onclick=()=>{if(currentPage<totalPages){currentPage++;render();scrollContentTop()}};
-  document.getElementById('pageBottom').onclick=()=>{scrollContentBottom()};
+  document.getElementById('pageTop').onclick=()=>{scrollContentTop()};
 }
 function scrollContentTop(){
   const c=document.getElementById('content');
   if(window.innerWidth>768){window.scrollTo({top:0,behavior:'smooth'})}
   else{c.scrollTo({top:0,behavior:'smooth'})}
-}
-function scrollContentBottom(){
-  const c=document.getElementById('content');
-  if(window.innerWidth>768){window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})}
-  else{c.scrollTo({top:c.scrollHeight,behavior:'smooth'})}
 }
 function goToPage(p){currentPage=p;render()}
 function inputCardHTML(){
@@ -1766,9 +1761,10 @@ function dbRowToNote(r){return{id:r.id,text:r.text,tags:r.tags||[],imgs:r.imgs||
 /* 统一查找：有效笔记 + 回收站笔记（回收站内可查看/编辑） */
 function findLoadedNote(id){return notes.find(n=>n.id===id)||trashNotes.find(n=>n.id===id)||null}
 
-async function openInsight(id){
+async function openInsight(id,opts){
+  const pushHistory=!opts||opts.pushHistory!==false; // 返回时 pushHistory:false，避免把当前页又压栈造成 A/B 互跳
   const n=notes.find(x=>x.id===id);if(!n)return;
-  if(insightMask.classList.contains('show')&&insightSourceId!==null&&insightSourceId!==id)insightStack.push(insightSourceId);
+  if(pushHistory&&insightMask.classList.contains('show')&&insightSourceId!==null&&insightSourceId!==id)insightStack.push(insightSourceId);
   insightSourceId=id;hideNoteMenu();closeSidebarMobile();
   insightSelected.clear();updateInsightActionbar();
   insightTitle.textContent='洞察 · '+noteLinkLabel(n).slice(0,14);
@@ -1778,7 +1774,7 @@ async function openInsight(id){
   renderInsightSource(n);
   let rows=[];
   try{
-    const {data,error}=await sb.rpc('note_neighbors',{p_note_id:id,p_limit:5});
+    const {data,error}=await sb.rpc('note_neighbors',{p_note_id:id,p_limit:5,p_min_similarity:0.48});
     if(error)throw error;rows=data||[];
   }catch(e){
     if(insightSourceId!==id)return;
@@ -1839,7 +1835,7 @@ document.getElementById('insightSelectAll').addEventListener('click',()=>{
 
 function closeInsight(){
   const prev=insightStack.pop();
-  if(prev!==undefined&&notes.find(x=>x.id===prev)){openInsight(prev);return}
+  if(prev!==undefined&&notes.find(x=>x.id===prev)){openInsight(prev,{pushHistory:false});return} // 返回不再压栈
   closeInsightAll();
 }
 document.getElementById('insightBack').addEventListener('click',closeInsight);

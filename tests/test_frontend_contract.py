@@ -290,6 +290,24 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn(".detail-compose{border:none;border-radius:0}", HTML)
         self.assertIn("blockBg", HTML)
 
+    def test_insight_neighbors_have_similarity_threshold(self):
+        # 问题1：洞察不再硬凑 5 条，RPC 加相似度阈值
+        self.assertIn("p_min_similarity:0.48", HTML)
+
+    def test_insight_back_no_repush(self):
+        # 问题2：2 级洞察返回时 pushHistory:false，避免 A/B 互跳卡死
+        self.assertIn("async function openInsight(id,opts)", HTML)
+        self.assertIn("pushHistory", HTML)
+        self.assertIn("openInsight(prev,{pushHistory:false})", HTML)
+
+    def test_pagination_last_button_is_back_to_top(self):
+        # 问题3：分页器最后是「回到顶部」不是「回到底部」
+        self.assertIn('id="pageTop"', HTML)
+        self.assertIn("回到顶部", HTML)
+        self.assertNotIn('id="pageBottom"', HTML)
+        self.assertNotIn("回到底部", HTML)
+        self.assertNotIn("function scrollContentBottom", HTML)
+
     def test_cancel_discards_edit_draft_and_updates_are_optimistic(self):
         self.assertIn("updated_at:n.updated_at", HTML)
         self.assertIn("base_updated_at:n.updated_at", HTML)
