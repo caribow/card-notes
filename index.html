@@ -917,9 +917,15 @@ function dbTimeToLocal(iso){const d=new Date(iso);return d.getFullYear()+'-'+('0
 function localTimeToDB(local){return local.replace(' ','T')+':00'}
 
 async function loadNotes(){
-  const {data,error}=await sb.from('notes').select('*').is('deleted_at',null).order('created_at',{ascending:false});
-  if(error){showToast('加载失败: '+error.message);return}
-  notes=(data||[]).map(dbRowToNote);
+  // PostgREST 单次最多返回 1000 行，循环分页拉取直到拿完
+  const PAGE=1000,all=[];
+  for(let from=0;;from+=PAGE){
+    const {data,error}=await sb.from('notes').select('*').is('deleted_at',null).order('created_at',{ascending:false}).range(from,from+PAGE-1);
+    if(error){showToast('加载失败: '+error.message);return}
+    all.push(...(data||[]));
+    if(!data||data.length<PAGE)break;
+  }
+  notes=all.map(dbRowToNote);
   renderTree();renderHeatmap();updateTopbarTag();render();
 }
 
@@ -1462,7 +1468,14 @@ async function openMap(){
   closeSidebarMobile();mapMask.classList.add('show');mapThemePanel.classList.remove('show');
   mapCanvas.innerHTML='<div class="map-empty"><p style="animation:pulse 1.5s ease-in-out infinite">正在识别有意义的主题...</p></div>';mapCount.textContent='';
   try{
-    const {data,error}=await sb.from('notes').select('id,text,tags,recorded_on,created_at,embedding').not('embedding','is',null).is('deleted_at',null);if(error)throw error;
+    // 认知地图向量同样受 1000 行上限影响，循环分页拉取
+    const PAGE=1000,data=[];
+    for(let from=0;;from+=PAGE){
+      const {data:chunk,error}=await sb.from('notes').select('id,text,tags,recorded_on,created_at,embedding').not('embedding','is',null).is('deleted_at',null).range(from,from+PAGE-1);
+      if(error)throw error;
+      data.push(...(chunk||[]));
+      if(!chunk||chunk.length<PAGE)break;
+    }
     const allPts=[];(data||[]).forEach(r=>{const v=parseEmbedding(r.embedding);if(!v||!v.length)return;const note=notes.find(n=>n.id===r.id)||{id:r.id,text:r.text,tags:r.tags||[],recorded_on:r.recorded_on,created_at:r.created_at,time:dbTimeToLocal(r.created_at)};allPts.push({id:r.id,vec:v,note,label:noteLinkLabel(note)})});
     const pts=allPts.filter(p=>isSubstantiveMapNote(p.note)),excluded=allPts.length-pts.length;
     if(pts.length<6){mapCanvas.innerHTML='<div class="map-empty"><p>可分析的个人笔记还太少</p><p style="font-size:11px">至少需要 6 条有正文的非自动采集笔记</p></div>';mapCount.textContent=pts.length+' 篇';return}
@@ -1518,10 +1531,15 @@ const WANDER_MAX=10,WANDER_SEED_MIN=0.55,WANDER_SEED_MAX=0.82;
 function noteVecCache(){if(!window._vecCache)window._vecCache=new Map();return window._vecCache}
 async function ensureVecsLoaded(){
   if(window._vecsLoaded)return true;
-  const {data,error}=await sb.from('notes').select('id,embedding').not('embedding','is',null).is('deleted_at',null);
-  if(error)return false; // 失败不标记，下次重试
+  const PAGE=1000,all=[];
+  for(let from=0;;from+=PAGE){
+    const {data,error}=await sb.from('notes').select('id,embedding').not('embedding','is',null).is('deleted_at',null).range(from,from+PAGE-1);
+    if(error)return false; // 失败不标记，下次重试
+    all.push(...(data||[]));
+    if(!data||data.length<PAGE)break;
+  }
   const c=noteVecCache();c.clear();
-  (data||[]).forEach(r=>{const v=parseEmbedding(r.embedding);if(v&&v.length)c.set(r.id,v)});
+  all.forEach(r=>{const v=parseEmbedding(r.embedding);if(v&&v.length)c.set(r.id,v)});
   window._vecsLoaded=true;return true;
 }
 async function fetchNoteVec(id){await ensureVecsLoaded();return noteVecCache().get(id)||null}
@@ -1622,9 +1640,14 @@ async function openTrash(){
   trashMask.classList.add('show');
   trashBody.innerHTML='<div class="trash-inner"><div class="insight-empty"><p style="animation:pulse 1.5s ease-in-out infinite">加载中...</p></div></div>';
   trashCount.textContent='';
-  const {data,error}=await sb.from('notes').select('*').not('deleted_at','is',null).order('deleted_at',{ascending:false});
-  if(error){trashBody.innerHTML='<div class="trash-inner"><div class="insight-empty"><p>加载失败</p></div></div>';return}
-  trashNotes=(data||[]).map(dbRowToNote);
+  const PAGE=1000,all=[];
+  for(let from=0;;from+=PAGE){
+    const {data,error}=await sb.from('notes').select('*').not('deleted_at','is',null).order('deleted_at',{ascending:false}).range(from,from+PAGE-1);
+    if(error){trashBody.innerHTML='<div class="trash-inner"><div class="insight-empty"><p>加载失败</p></div></div>';return}
+    all.push(...(data||[]));
+    if(!data||data.length<PAGE)break;
+  }
+  trashNotes=all.map(dbRowToNote);
   renderTrash();
 }
 function closeTrash(){trashMask.classList.remove('show');trashSelected.clear();updateTrashActionbar();hideNoteMenu();loadNotes()}

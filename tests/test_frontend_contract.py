@@ -213,6 +213,11 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn('detailReturnToWander', HTML)
         self.assertNotIn('requestFullscreen', HTML)
 
+    def test_notes_loading_paginates_past_postgrest_1000_row_cap(self):
+        # PostgREST 单次最多 1000 行，加载必须循环 .range() 分页直到拿完
+        self.assertIn('.range(from,from+PAGE-1)', HTML)
+        self.assertIn('if(!data||data.length<PAGE)break', HTML)
+
     def test_insight_batch_tag_is_wired(self):
         self.assertIn('id="insightSelectAll"', HTML)
         self.assertIn('id="insightActionbar"', HTML)
