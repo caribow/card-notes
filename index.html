@@ -60,19 +60,20 @@ input,textarea{font-family:inherit;outline:none;border:none}
 .heatmap-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .heatmap-title{font-family:var(--mono);font-size:10px;color:var(--side-text-3);letter-spacing:.5px;text-transform:uppercase}
 .heatmap-count{font-family:var(--mono);font-size:11px;color:var(--side-text);font-weight:500}
-.heatmap-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.heatmap-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
 .heatmap-cell{
-  aspect-ratio:1;border-radius:1px;background:#3F3F3F;
-  transition:transform .1s,background .15s;
+  aspect-ratio:1;border-radius:2px;background:#3F3F3F;
+  transition:transform .12s,background .15s,box-shadow .12s;
 }
-.heatmap-cell:hover{transform:scale(1.4);z-index:5;position:relative}
-.heatmap-cell.heat-empty{background:transparent;pointer-events:none;padding:0;display:block}
+.heatmap-cell:hover{transform:scale(1.45);z-index:5;position:relative;background:#F2F2F2;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.heatmap-cell.heat-empty{background:transparent;pointer-events:none;padding:0;display:block;box-shadow:none}
+.heatmap-cell.heat-empty:hover{background:transparent;transform:none}
 .heatmap-cell.today{outline:1px solid #9A9A9A;outline-offset:1px}
 .heatmap-cell.l1{background:#6E6E6E}
 .heatmap-cell.l2{background:#969696}
 .heatmap-cell.l3{background:#BEBEBE}
 .heatmap-cell.l4{background:#E8E8E8}
-.heatmap-week{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px}
+.heatmap-week{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:3px}
 .heatmap-week span{font-family:var(--mono);font-size:8px;color:var(--side-text-3);text-align:center}
 .heatmap-months{display:flex;justify-content:space-between;margin-top:4px;font-family:var(--mono);font-size:8px;color:var(--side-text-3)}
 
@@ -220,6 +221,26 @@ input,textarea{font-family:inherit;outline:none;border:none}
 .card-meta{display:flex;align-items:center;gap:10px;margin:12px -16px 0;padding:8px 16px;border-top:1px solid var(--border-soft);background:var(--bg-soft);font-family:var(--mono);font-size:10px;color:var(--text-3);letter-spacing:.5px;box-shadow:0 -1px 2px rgba(0,0,0,.02),inset 0 1px 0 rgba(0,0,0,.02)}
 .card-meta .card-meta-ind{display:inline-flex;align-items:center;gap:4px}
 .card-meta svg{opacity:.55;flex-shrink:0}
+
+/* ---- 置顶区（每页钉顶，独立视觉区） ---- */
+.pin-zone{background:var(--bg-soft);border:1px solid var(--border-soft);border-radius:6px;padding:10px 10px 4px;margin-bottom:16px}
+.pin-zone-head{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;color:var(--text-3);letter-spacing:1px;text-transform:uppercase;padding:0 4px 8px}
+.pin-zone .card{margin-bottom:10px;background:var(--bg)}
+.pin-zone .card.pinned{border-color:#666}
+
+/* ---- 分页工具条 ---- */
+.page-bar{display:flex;align-items:center;justify-content:center;gap:10px;padding:18px 0 8px;flex-wrap:wrap}
+.page-btn{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--text);padding:8px 16px;border-radius:10px;background:#4A4A4A;color:#fff;transition:opacity .15s,transform .1s;box-shadow:0 2px 8px rgba(0,0,0,.14)}
+.page-btn:hover:not(:disabled){opacity:.92}
+.page-btn:active:not(:disabled){transform:scale(.97)}
+.page-btn:disabled{opacity:.35;cursor:default;box-shadow:none}
+.page-num{font-family:var(--mono);font-size:12px;color:var(--text-2);letter-spacing:1px;padding:0 4px}
+.page-top{width:38px;height:38px;border-radius:10px;border:1px solid var(--border);background:var(--bg);display:inline-flex;align-items:center;justify-content:center;color:var(--text-2);transition:background .15s,color .15s,border-color .15s}
+.page-top:hover{background:var(--hover-bg);color:var(--text);border-color:#999}
+@media(max-width:768px){
+  .page-bar{gap:8px;padding:14px 0 4px}
+  .page-btn{padding:9px 14px;font-size:12.5px}
+}
 
 /* ---- Card menu popup ---- */
 .card-menu-pop{position:fixed;z-index:650;background:var(--bg);border:1px solid var(--border);border-radius:9px;box-shadow:0 8px 28px rgba(0,0,0,.14);padding:4px;min-width:130px;display:none}
@@ -443,7 +464,7 @@ input,textarea{font-family:inherit;outline:none;border:none}
   body{overflow-y:auto}
   .app.authed{display:grid;grid-template-columns:248px minmax(0,640px);column-gap:28px;align-items:start;width:calc(100% - 40px);max-width:916px;margin:0 auto;padding:32px 0 80px;height:auto;min-height:100vh;overflow:visible}
   .menu-btn{display:none}
-  .sidebar{position:relative;top:auto;height:auto;max-height:calc(100vh - 64px);margin:0;transform:none !important;border-radius:2px;overflow:hidden;box-shadow:0 2px 4px rgba(0,0,0,.14),0 12px 32px rgba(0,0,0,.12)}
+  .sidebar{position:relative;top:auto;height:auto;max-height:calc(100vh - 32px);margin:0;transform:none !important;border-radius:2px;overflow:hidden;box-shadow:0 2px 4px rgba(0,0,0,.14),0 12px 32px rgba(0,0,0,.12)}
   .app.sidebar-collapsed .sidebar{margin-left:0}
   .overlay{display:none !important}
   .main{width:100%;min-height:100vh}
@@ -579,6 +600,7 @@ input,textarea{font-family:inherit;outline:none;border:none}
 .wander-card-text{flex:1;overflow-y:auto;font-size:16px;line-height:1.85;color:var(--text);word-break:break-word;-webkit-overflow-scrolling:touch}
 .wander-card-text img{max-width:100%;border-radius:8px;margin-top:8px}
 .wander-card-tags{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--border-soft)}
+.wander-card-tag{font-family:var(--mono);font-size:11px;color:var(--text-2);padding:2px 7px;border-radius:2px;background:var(--tag-bg);cursor:default}
 .wander-card-menu{position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text-3);background:var(--bg);transition:background .15s,color .15s;z-index:2}
 .wander-card-menu:hover{background:var(--hover-bg);color:var(--text)}
 .wander-foot{flex-shrink:0;width:min(560px,100%);padding:20px 0 calc(20px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:10px}
@@ -640,18 +662,17 @@ input,textarea{font-family:inherit;outline:none;border:none}
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="13" height="15" rx="2"/><path d="M8 4h11a2 2 0 0 1 2 2v13"/></svg>
       <span>随机漫步</span>
     </div>
+    <div class="side-map-entry" id="trashEntry" title="回收站">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+      <span>回收站</span>
+    </div>
     <ul class="tree" id="tree"></ul>
     <div class="side-foot">
       <div class="side-foot-left">
-        <span class="ver">v0.1</span>
-        <button class="theme-toggle" id="trashEntry" aria-label="回收站" title="回收站">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-        </button>
         <button class="theme-toggle" id="logoutBtn" aria-label="退出登录" title="退出登录">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
         </button>
       </div>
-      <span class="ver" style="color:#777">●</span>
     </div>
   </aside>
   <div class="overlay" id="overlay"></div>
@@ -874,7 +895,13 @@ function fmtDate(s){
   if(y===ny-1)return{label:'去年'+m+'月'+day+'日',sub:'去年'+m+'月'+day+'日',isToday:false};
   return{label:y+'年'+m+'月'+day+'日',sub:y+'年'+m+'月'+day+'日',isToday:false};
 }
-function noteTitle(n){return n.text.split('\n')[0].replace(/[#*`>\-\[\]]/g,'').trim().slice(0,30)}
+function noteTitle(n){
+  const first=String(n.text||'').split('\n')[0].replace(/[#*`>\-\[\]]/g,'').trim();
+  // 跳过开头无意义标点/省略号/空白，取第一个实词片段
+  const cleaned=first.replace(/^[…\.\。，、；：！？\s\-—~·]+/,'').trim();
+  const t=(cleaned||first).slice(0,30);
+  return t||('笔记 '+n.id);
+}
 function findNoteByTitle(t){return notes.find(n=>noteTitle(n)===t)}
 function noteLinkLabel(n){return noteTitle(n)||('笔记 '+n.id)}
 function noteLinkToken(n){return '#'+n.id+'|'+noteLinkLabel(n)}
@@ -951,7 +978,7 @@ function renderTree(){
     html+='</li>'})}
   walk(root,'');el.innerHTML=html;
 }
-function selectTag(tag){currentTag=(tag==='__all__')?null:tag;renderTree();updateTopbarTag();render();closeSidebarMobile()}
+function selectTag(tag){currentTag=(tag==='__all__')?null:tag;currentPage=1;renderTree();updateTopbarTag();render();closeSidebarMobile()}
 function updateTopbarTag(){const el=document.getElementById('topbarTag');if(currentTag){el.textContent='#'+currentTag+' ×';el.classList.add('show')}else el.classList.remove('show')}
 document.getElementById('topbarTag').addEventListener('click',()=>selectTag('__all__'));
 document.getElementById('tree').addEventListener('click',function(e){
@@ -961,18 +988,68 @@ document.getElementById('tree').addEventListener('click',function(e){
   e.preventDefault();selectTag(row.dataset.tag);
 });
 
-/* ============ RENDER FEED ============ */
+/* ============ RENDER FEED（分页 + 置顶区） ============ */
+const PAGE_SIZE=15; // 每页非置顶笔记数
+let currentPage=1;
 function getFiltered(){if(!currentTag)return notes;return notes.filter(n=>n.tags.some(t=>t===currentTag||t.startsWith(currentTag+'/')))}
-function render(){const f=getFiltered().slice().sort(compareNotes);renderFeed(f)}
+function render(){renderFeed(getFiltered())}
+
+function noteCardFull(n){
+  const tags=n.tags.map(t=>`<span class="card-tag ${currentTag&&(t===currentTag||t.startsWith(currentTag+'/'))?'match':''}" data-tag="${escapeAttr(t)}">${escapeHTML(t)}</span>`).join('');
+  const preview=stripBilinks(n.text).replace(/[#*`>]/g,'').replace(/\n/g,' ');
+  const hasImgs=n.imgs&&n.imgs.length>0,isLong=n.text.length>80,fwd=getForwardLinks(n);
+  const ind=[];
+  if(hasImgs)ind.push(`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>${n.imgs.length}`);
+  if(fwd.length>0)ind.push(`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>${fwd.length}`);
+  if(isLong)ind.push(`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg>`);
+  return `<div class="card${n.pinned_at?' pinned':''}" data-id="${Number(n.id)}"><button class="card-menu-btn" data-note-id="${Number(n.id)}" title="更多"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg></button><div class="card-ts"><span class="dot"></span>${fmtTime(n.time)}</div><div class="card-txt collapsed">${escapeHTML(preview)}</div><div class="card-tags">${tags}</div><div class="card-meta"><span>${noteDate(n)}</span>${ind.map(i=>`<span class="card-meta-ind">${i}</span>`).join('')}</div></div>`;
+}
+
 function renderFeed(list){
   const el=document.getElementById('feed');
+  const pinned=list.filter(n=>n.pinned_at).sort((a,b)=>String(b.pinned_at).localeCompare(String(a.pinned_at)));
+  const rest=list.filter(n=>!n.pinned_at).sort((a,b)=>noteSortKey(b).localeCompare(noteSortKey(a)));
+  const totalPages=Math.max(1,Math.ceil(rest.length/PAGE_SIZE));
+  if(currentPage>totalPages)currentPage=totalPages;
+  if(currentPage<1)currentPage=1;
+  const pageRest=rest.slice((currentPage-1)*PAGE_SIZE,currentPage*PAGE_SIZE);
+
   let html=inputCardHTML();
-  if(list.length===0){html+=emptyHTML();el.innerHTML=html;bindInputCard();return}
+  // 置顶区（每页都钉顶，独立视觉区）
+  if(pinned.length){
+    html+=`<div class="pin-zone"><div class="pin-zone-head"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1z"/></svg>置顶 · ${pinned.length}</div>`;
+    pinned.forEach(n=>html+=noteCardFull(n));
+    html+='</div>';
+  }
+  // 当页笔记（按日期分组）
+  if(pageRest.length===0&&!pinned.length){html+=emptyHTML();el.innerHTML=html;bindInputCard();renderPagination(0,0);return}
   const groups={};
-  list.forEach(n=>{const k=noteDate(n);if(!groups[k])groups[k]=[];groups[k].push(n)});
-  Object.keys(groups).forEach(date=>{const info=fmtDate(date);html+=`<div class="date-sep${info.isToday?' today':''}">${info.sub}</div>`;groups[date].forEach(n=>html+=cardHTML(n))});
+  pageRest.forEach(n=>{const k=noteDate(n);if(!groups[k])groups[k]=[];groups[k].push(n)});
+  Object.keys(groups).forEach(date=>{const info=fmtDate(date);html+=`<div class="date-sep${info.isToday?' today':''}">${info.sub}</div>`;groups[date].forEach(n=>html+=noteCardFull(n))});
   el.innerHTML=html;bindInputCard();
+  renderPagination(totalPages,rest.length);
 }
+
+function renderPagination(totalPages,restCount){
+  let bar=document.getElementById('pageBar');
+  if(!bar){bar=document.createElement('div');bar.id='pageBar';bar.className='page-bar';document.getElementById('feed').appendChild(bar)}
+  if(totalPages<=1){bar.innerHTML='';bar.style.display='none';return}
+  bar.style.display='flex';
+  bar.innerHTML=`
+    <button class="page-btn" id="pagePrev" ${currentPage<=1?'disabled':''} aria-label="上一页"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>上一页</button>
+    <span class="page-num">${currentPage} / ${totalPages}</span>
+    <button class="page-btn" id="pageNext" ${currentPage>=totalPages?'disabled':''} aria-label="下一页">下一页<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></button>
+    <button class="page-top" id="pageTop" title="回到顶部" aria-label="回到顶部"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>`;
+  document.getElementById('pagePrev').onclick=()=>{if(currentPage>1){currentPage--;render();scrollContentTop()}};
+  document.getElementById('pageNext').onclick=()=>{if(currentPage<totalPages){currentPage++;render();scrollContentTop()}};
+  document.getElementById('pageTop').onclick=()=>{scrollContentTop()};
+}
+function scrollContentTop(){
+  const c=document.getElementById('content');
+  if(window.innerWidth>768){window.scrollTo({top:0,behavior:'smooth'})}
+  else{c.scrollTo({top:0,behavior:'smooth'})}
+}
+function goToPage(p){currentPage=p;render()}
 function inputCardHTML(){
   const tagHint=currentTag?'#'+currentTag+' ':'';
   return `<div class="input-card" id="inputCard">
@@ -1019,16 +1096,7 @@ async function saveQuickNote(){
   ta.value='';ta.style.height='auto';sendBtn.textContent='保存 ⏎';sendBtn.disabled=false;sendBtn.classList.remove('active');
   renderTree();renderHeatmap();render();
 }
-function cardHTML(n){
-  const tags=n.tags.map(t=>`<span class="card-tag ${currentTag&&(t===currentTag||t.startsWith(currentTag+'/'))?'match':''}" data-tag="${escapeAttr(t)}">${escapeHTML(t)}</span>`).join('');
-  const preview=stripBilinks(n.text).replace(/[#*`>]/g,'').replace(/\n/g,' ');
-  const hasImgs=n.imgs&&n.imgs.length>0,isLong=n.text.length>80,fwd=getForwardLinks(n);
-  const ind=[];
-  if(hasImgs)ind.push(`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>${n.imgs.length}`);
-  if(fwd.length>0)ind.push(`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>${fwd.length}`);
-  if(isLong)ind.push(`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg>`);
-  return `<div class="card${n.pinned_at?' pinned':''}" data-id="${Number(n.id)}"><button class="card-menu-btn" data-note-id="${Number(n.id)}" title="更多"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg></button><div class="card-ts"><span class="dot"></span>${fmtTime(n.time)}</div><div class="card-txt collapsed">${escapeHTML(preview)}</div><div class="card-tags">${tags}</div><div class="card-meta"><span>${noteDate(n)}</span>${ind.map(i=>`<span class="card-meta-ind">${i}</span>`).join('')}</div></div>`;
-}
+function cardHTML(n){return noteCardFull(n)}
 function emptyHTML(){return `<div class="empty"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg><p>这里还没有笔记</p></div>`}
 
 /* ============ PIN ============ */
@@ -1039,11 +1107,12 @@ const noteMenuPop=document.getElementById('noteMenuPop');let noteMenuNoteId=null
 function pinLabelHTML(container,id){const n=notes.find(x=>x.id===id);const lbl=container&&container.querySelector('.pin-label');if(lbl)lbl.textContent=n&&n.pinned_at?'取消置顶':'置顶'}
 function showNoteMenu(btn,id){
   noteMenuNoteId=id;pinLabelHTML(noteMenuPop,id);
-  // 回收站上下文：仅保留 编辑/恢复/彻底删除
+  // 每次打开都完整重建可见项：回收站上下文=编辑/恢复/彻底删除；其余=置顶/编辑/引用/洞察/删除
   const inTrash=trashMask.classList.contains('show');
   noteMenuPop.querySelectorAll('.card-menu-item').forEach(it=>{
     const a=it.dataset.action;
-    it.hidden=inTrash?!['edit','restore','delete'].includes(a):a==='restore';
+    if(inTrash){it.hidden=!['edit','restore','delete'].includes(a)}
+    else{it.hidden=(a==='restore')}
   });
   const delLbl=noteMenuPop.querySelector('.delete-label');if(delLbl)delLbl.textContent=inTrash?'彻底删除':'删除';
   const r=btn.getBoundingClientRect(),pw=150;
@@ -1378,60 +1447,31 @@ function invalidateVecs(){window._vecsLoaded=false}
 // 新增/编辑/恢复/删除笔记后调用，下一次漫步重新拉向量
 function pickRandom(arr){return arr[Math.floor(Math.random()*arr.length)]}
 
-// 三幕：那年今日 → 日期临近 → 语义漂游（中距离带随机跳）
+// 三幕：那年今日 → 那年临近 → 纯随机（开场两幕只看历史年份）
 async function buildWanderList(){
   const list=[],used=new Set();
   const push=n=>{if(n&&!used.has(n.id)&&list.length<WANDER_MAX){used.add(n.id);list.push(n)}};
-  const now=new Date(),md=('0'+(now.getMonth()+1)).slice(-2)+'-'+('0'+now.getDate()).slice(-2);
+  const now=new Date(),md=('0'+(now.getMonth()+1)).slice(-2)+'-'+('0'+now.getDate()).slice(-2),curYear=String(now.getFullYear());
   const pool=notes.filter(n=>n.text&&n.text.trim());
   if(!pool.length)return list;
-  await ensureVecsLoaded();
-  const hasAnyVec=pool.some(n=>noteVecCache().has(n.id));
 
-  // 第一幕：那年今日（往年同月日）
-  const sameDay=pool.filter(n=>noteDate(n).slice(5)===md&&noteDate(n).slice(0,4)!==String(now.getFullYear()));
+  // 第一幕：那年今日（仅历史年份的同月日）
+  const sameDay=pool.filter(n=>noteDate(n).slice(5)===md&&noteDate(n).slice(0,4)!==curYear);
   sameDay.sort(()=>Math.random()-.5).slice(0,2).forEach(push);
-  // 当天日期前后 ±3 天（环形月日距离，忽略年份）
+  // 第二幕：那年临近（仅历史年份，环形月日距离 ±3 天）
   if(list.length<2){
-    const near=pool.filter(n=>{const d=noteDate(n).slice(5);return d!==md&&monthDayDistance(d,md)<=3&&!used.has(n.id)});
+    const near=pool.filter(n=>{const d=noteDate(n);return d.slice(0,4)!==curYear&&d.slice(5)!==md&&monthDayDistance(d.slice(5),md)<=3&&!used.has(n.id)});
     near.sort(()=>Math.random()-.5).slice(0,2-list.length).forEach(push);
   }
-  // 兜底：起点允许任意正文笔记（不强制向量）
-  if(!list.length)push(pickRandom(pool));
-  if(!list.length)return list;
-
-  // 完全无向量：随机排列剩余笔记后直接返回
-  if(!hasAnyVec){
-    pool.filter(n=>!used.has(n.id)).sort(()=>Math.random()-.5).forEach(push);
-    return list;
-  }
-
-  // 第二幕：语义漂游
-  let current=list[list.length-1];
-  while(list.length<WANDER_MAX){
-    const vec=noteVecCache().get(current.id);if(!vec)break;
-    const unitCur=normalizeVec(vec);
-    const sims=[];
-    for(const n of pool){
-      if(used.has(n.id))continue;
-      const v=noteVecCache().get(n.id);if(!v||v.length!==vec.length)continue;
-      sims.push({n,sim:dotVec(unitCur,normalizeVec(v))});
-    }
-    if(!sims.length)break;
-    sims.sort((a,b)=>b.sim-a.sim);
-    const band=sims.filter(x=>x.sim>=WANDER_SEED_MIN&&x.sim<=WANDER_SEED_MAX);
-    const cand=band.length?band:sims.slice(0,Math.min(5,sims.length)); // 带空则取最近 5 条
-    const top=cand[Math.floor(Math.random()*Math.min(cand.length,4))];
-    if(!top||top.sim<0.32)break; // 语义断裂则收束（先判断再加入）
-    push(top.n);current=top.n;
-  }
+  // 第三幕：纯随机填满剩余（含今年，排除已选）
+  pool.filter(n=>!used.has(n.id)).sort(()=>Math.random()-.5).forEach(push);
   return list;
 }
 function monthDayOrdinal(md){const[m,d]=md.split('-').map(Number);return Math.floor(Date.UTC(2000,m-1,d)/86400000)}
 function monthDayDistance(a,b){const diff=Math.abs(monthDayOrdinal(a)-monthDayOrdinal(b));return Math.min(diff,366-diff)}
 
 function wanderCardHTML(n){
-  const tags=n.tags.map(t=>`<span class="card-tag">${escapeHTML(t)}</span>`).join('');
+  const tags=n.tags.map(t=>`<span class="wander-card-tag">${escapeHTML(t)}</span>`).join('');
   return `<button class="wander-card-menu" data-wander-menu="${Number(n.id)}" title="更多"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg></button>
   <div class="wander-card-date"><span class="dot"></span>${fmtDate(noteDate(n)).sub} · ${fmtTime(n.time)}</div>
   <div class="wander-card-text">${renderMD(n.text)}</div>
@@ -1447,12 +1487,12 @@ function renderWanderDeck(){
   wanderDeck.appendChild(card);
   wanderCount.textContent=(wanderIdx+1)+' / '+wanderList.length;
   const isLast=wanderIdx>=wanderList.length-1;
-  wanderNext.textContent=isLast?'重新开始':'下一张';
+  wanderNext.textContent=isLast?'结束漫步':'下一张';
 }
 function wanderAdvance(){
   if(wanderAnimating)return;
   const isLast=wanderIdx>=wanderList.length-1;
-  if(isLast){startWander();return}
+  if(isLast){closeWander();return} // 10 张结束，只能返回，不再续刷
   const cur=wanderDeck.querySelector('.wander-card[data-pos="cur"]');
   wanderAnimating=true;
   wanderIdx++;
@@ -1463,7 +1503,7 @@ function wanderAdvance(){
   wanderDeck.appendChild(ncard);
   requestAnimationFrame(()=>{requestAnimationFrame(()=>{ncard.classList.remove('fly-in')})});
   wanderCount.textContent=(wanderIdx+1)+' / '+wanderList.length;
-  wanderNext.textContent=wanderIdx>=wanderList.length-1?'重新开始':'下一张';
+  wanderNext.textContent=wanderIdx>=wanderList.length-1?'结束漫步':'下一张';
   setTimeout(()=>{if(cur)cur.remove();renderWanderDeck();wanderAnimating=false},340);
 }
 async function startWander(){
@@ -1720,7 +1760,8 @@ document.getElementById('overlay').addEventListener('click',closeSidebarMobile);
 
 /* ============ SEARCH ============ */
 document.getElementById('searchInput').addEventListener('input',function(){const q=this.value.trim().toLowerCase();if(!q){render();return}const f=notes.filter(n=>n.text.toLowerCase().includes(q)||n.tags.some(t=>t.toLowerCase().includes(q)));
-  // render without input card during search
+  // 搜索显示全部匹配，不分页；隐藏分页条
+  const bar=document.getElementById('pageBar');if(bar)bar.style.display='none';
   const el=document.getElementById('feed');let html='';
   if(f.length===0){el.innerHTML=inputCardHTML()+emptyHTML();bindInputCard();return}
   const groups={};f.sort(compareNotes).forEach(n=>{const k=noteDate(n);if(!groups[k])groups[k]=[];groups[k].push(n)});

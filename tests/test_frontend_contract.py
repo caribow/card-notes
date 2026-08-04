@@ -52,7 +52,7 @@ class FrontendContractTests(unittest.TestCase):
         assert desktop is not None
         css = desktop.group(1)
         self.assertIn('height:auto', css)
-        self.assertIn('max-height:calc(100vh - 64px)', css)
+        self.assertIn('max-height:calc(100vh - 32px)', css)
         self.assertIn('grid-template-columns:248px minmax(0,640px)', css)
         self.assertIn('column-gap:28px', css)
         self.assertIn('max-width:916px', css)
@@ -68,10 +68,9 @@ class FrontendContractTests(unittest.TestCase):
         self.assertNotIn('>闪念笔记</span>', HTML)
 
     def test_mobile_navigation_and_touch_targets_are_phone_safe(self):
-        mobile = re.search(r'@media\(max-width:768px\)\{([\s\S]*?)\n\}', HTML)
-        self.assertIsNotNone(mobile)
-        assert mobile is not None
-        css = mobile.group(1)
+        # 抓取包含 sidebar 样式的那个 768px 媒体查询块
+        blocks = re.findall(r'@media\(max-width:768px\)\{([\s\S]*?)\n\}', HTML)
+        css = next((b for b in blocks if '--side-w' in b), '')
         self.assertIn('--side-w:min(86vw,300px)', css)
         self.assertIn('.menu-btn{width:40px;height:40px}', css)
         self.assertIn('.card-menu-btn{width:36px;height:36px', css)
