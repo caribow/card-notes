@@ -2,23 +2,23 @@
 -- 根因：set_card_note_updated_at 是 BEFORE UPDATE 无列过滤，
 -- embed-note 回写 embedding 列也会刷新 updated_at，导致前端乐观锁
 -- (.eq('updated_at', 旧值)) 在下次保存时匹配 0 行误报冲突。
--- 修复：仅在内容相关列真实变化时才刷新 updated_at；
--- embedding 回写（只改 embedding 列）不再触碰 updated_at。
+-- 修复：仅当用户可编辑业务字段整行真变化时才推进 updated_at；
+-- embedding（后台派生）回写不推进版本，并防止调用方伪造 updated_at。
+-- 维护要求：新增用户可编辑业务列时加入比较组；新增纯派生列不加入。
 create or replace function public.set_card_note_updated_at()
 returns trigger
 language plpgsql
 set search_path = 'pg_catalog', 'public'
 as $$
 begin
-  if new.text is not distinct from old.text
-     and new.tags is not distinct from old.tags
-     and new.imgs is not distinct from old.imgs
-     and new.recorded_on is not distinct from old.recorded_on
-     and new.pinned_at is not distinct from old.pinned_at
-     and new.deleted_at is not distinct from old.deleted_at then
-    return new;
+  if row(new.id,new.text,new.tags,new.imgs,new.created_at,new.owner_id,new.recorded_on,new.pinned_at,new.deleted_at)
+     is distinct from
+     row(old.id,old.text,old.tags,old.imgs,old.created_at,old.owner_id,old.recorded_on,old.pinned_at,old.deleted_at)
+  then
+    new.updated_at := now();
+  else
+    new.updated_at := old.updated_at;
   end if;
-  new.updated_at = now();
   return new;
 end;
 $$;
