@@ -155,8 +155,9 @@ Deno.serve(async (req) => {
 
     // 先读 text 再解析，兼容上游返回 BOM / SSE / 非标准 JSON 的情况
     let llmBody: unknown
+    let rawText = ''
     try {
-      const rawText = await llmResponse.text()
+      rawText = await llmResponse.text()
       // 去 BOM
       const cleanText = rawText.replace(/^\uFEFF/, '')
       // 检测 SSE 流式格式（data: {...}\n\n）
