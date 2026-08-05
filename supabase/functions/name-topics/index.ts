@@ -130,7 +130,7 @@ Deno.serve(async (req) => {
     }
 
     let llmResponse: Response
-    const BATCH_SIZE = 10
+    const BATCH_SIZE = 5
     const allResults: Array<{ cluster_id: number; valid: boolean; name: string; definition: string; confidence: number }> = []
     let totalUsage: unknown = null
 
