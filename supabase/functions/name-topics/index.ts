@@ -130,99 +130,115 @@ Deno.serve(async (req) => {
     }
 
     let llmResponse: Response
-    try {
-      llmResponse = await fetch(CHAT_URL, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: MODEL,
-          messages: [{ role: 'user', content: buildPrompt(clusters) }],
-          temperature: 0.3,
-          response_format: { type: 'json_object' },
-        }),
-      })
-    } catch (e) {
-      return jsonResponse({ error: 'llm fetch failed', detail: String(e) }, 502)
-    }
+    const BATCH_SIZE = 10
+    const allResults: Array<{ cluster_id: number; valid: boolean; name: string; definition: string; confidence: number }> = []
+    let totalUsage: unknown = null
 
-    if (!llmResponse.ok) {
-      const detail = (await llmResponse.text()).slice(0, 1000)
-      return jsonResponse({ error: 'llm api failed', detail }, 502)
-    }
+    // 分批调用，避免单次 prompt 过长导致上游 504
+    for (let i = 0; i < clusters.length; i += BATCH_SIZE) {
+      const batch = clusters.slice(i, i + BATCH_SIZE)
+      try {
+        llmResponse = await fetch(CHAT_URL, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: MODEL,
+            messages: [{ role: 'user', content: buildPrompt(batch) }],
+            temperature: 0.3,
+            response_format: { type: 'json_object' },
+          }),
+        })
+      } catch (e) {
+        return jsonResponse({ error: 'llm fetch failed', detail: String(e), batch_start: i }, 502)
+      }
 
-    // 先读 text 再解析，兼容上游返回 BOM / SSE / 非标准 JSON 的情况
-    let llmBody: unknown
-    let rawText = ''
-    try {
-      rawText = await llmResponse.text()
-      // 去 BOM
-      const cleanText = rawText.replace(/^\uFEFF/, '')
-      // 检测 SSE 流式格式（data: {...}\n\n）
-      if (cleanText.startsWith('data: ')) {
-        const chunks: string[] = []
-        for (const line of cleanText.split('\n')) {
-          if (line.startsWith('data: ') && line !== 'data: [DONE]') {
-            try {
-              const chunk = JSON.parse(line.slice(6))
-              const delta = chunk?.choices?.[0]?.delta?.content
-              if (typeof delta === 'string') chunks.push(delta)
-            } catch { /* 忽略无法解析的行 */ }
+      if (!llmResponse.ok) {
+        const detail = (await llmResponse.text()).slice(0, 1000)
+        return jsonResponse({ error: 'llm api failed', detail, batch_start: i }, 502)
+      }
+
+      // 先读 text 再解析，兼容上游返回 BOM / SSE / 非标准 JSON 的情况
+      let llmBody: unknown
+      let rawText = ''
+      try {
+        rawText = await llmResponse.text()
+        // 去 BOM
+        const cleanText = rawText.replace(/^\uFEFF/, '')
+        // 检测 SSE 流式格式（data: {...}\n\n）
+        if (cleanText.startsWith('data: ')) {
+          const chunks: string[] = []
+          for (const line of cleanText.split('\n')) {
+            if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+              try {
+                const chunk = JSON.parse(line.slice(6))
+                const delta = chunk?.choices?.[0]?.delta?.content
+                if (typeof delta === 'string') chunks.push(delta)
+              } catch { /* 忽略无法解析的行 */ }
+            }
           }
+          llmBody = { choices: [{ message: { content: chunks.join('') } }] }
+        } else {
+          llmBody = JSON.parse(cleanText)
         }
-        llmBody = { choices: [{ message: { content: chunks.join('') } }] }
-      } else {
-        llmBody = JSON.parse(cleanText)
+      } catch (parseErr) {
+        // 记录上游原始响应特征（不记正文），便于定位
+        const rawPreview = rawText.slice(0, 200)
+        const previewHash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(rawPreview))
+          .then(b => Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2, '0')).join('').slice(0, 16))
+        console.error('name-topics upstream parse failed', {
+          status: llmResponse.status,
+          contentType: llmResponse.headers.get('content-type'),
+          contentLength: llmResponse.headers.get('content-length'),
+          error: String(parseErr),
+          rawLength: rawText.length,
+          rawPreviewHash: previewHash,
+          rawStartsWith: rawText.slice(0, 50).replace(/[^\x20-\x7E]/g, '?'),
+          rawEndsWith: rawText.slice(-50).replace(/[^\x20-\x7E]/g, '?'),
+          batch_start: i,
+        })
+        return jsonResponse({
+          error: 'llm returned invalid response',
+          detail: 'upstream body is not valid JSON',
+          upstream_status: llmResponse.status,
+          upstream_content_type: llmResponse.headers.get('content-type'),
+          upstream_body_length: rawText.length,
+          upstream_starts_with: rawText.slice(0, 80).replace(/[^\x20-\x7E]/g, '?'),
+          batch_start: i,
+        }, 502)
       }
-    } catch (parseErr) {
-      // 记录上游原始响应特征（不记正文），便于定位
-      const rawPreview = rawText.slice(0, 200)
-      const previewHash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(rawPreview))
-        .then(b => Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2, '0')).join('').slice(0, 16))
-      console.error('name-topics upstream parse failed', {
-        status: llmResponse.status,
-        contentType: llmResponse.headers.get('content-type'),
-        contentLength: llmResponse.headers.get('content-length'),
-        error: String(parseErr),
-        rawLength: rawText.length,
-        rawPreviewHash: previewHash,
-        rawStartsWith: rawText.slice(0, 50).replace(/[^\x20-\x7E]/g, '?'),
-        rawEndsWith: rawText.slice(-50).replace(/[^\x20-\x7E]/g, '?'),
-      })
-      return jsonResponse({
-        error: 'llm returned invalid response',
-        detail: 'upstream body is not valid JSON',
-        upstream_status: llmResponse.status,
-        upstream_content_type: llmResponse.headers.get('content-type'),
-        upstream_body_length: rawText.length,
-        upstream_starts_with: rawText.slice(0, 80).replace(/[^\x20-\x7E]/g, '?'),
-      }, 502)
-    }
 
-    const content = (llmBody as { choices?: Array<{ message?: { content?: unknown } }> })
-      ?.choices?.[0]?.message?.content
-    if (typeof content !== 'string') {
-      return jsonResponse({ error: 'llm response missing content' }, 502)
-    }
-
-    let parsed: { results?: unknown } | null = null
-    try {
-      parsed = JSON.parse(content)
-    } catch {
-      const s = content.indexOf('{')
-      const e2 = content.lastIndexOf('}')
-      if (s >= 0 && e2 > s) {
-        try { parsed = JSON.parse(content.slice(s, e2 + 1)) } catch { parsed = null }
+      const content = (llmBody as { choices?: Array<{ message?: { content?: unknown } }> })
+        ?.choices?.[0]?.message?.content
+      if (typeof content !== 'string') {
+        return jsonResponse({ error: 'llm response missing content', batch_start: i }, 502)
       }
-    }
-    if (!parsed || !Array.isArray(parsed.results)) {
-      return jsonResponse({ error: 'llm returned non-json', raw: content.slice(0, 500) }, 502)
+
+      let parsed: { results?: unknown } | null = null
+      try {
+        parsed = JSON.parse(content)
+      } catch {
+        const s = content.indexOf('{')
+        const e2 = content.lastIndexOf('}')
+        if (s >= 0 && e2 > s) {
+          try { parsed = JSON.parse(content.slice(s, e2 + 1)) } catch { parsed = null }
+        }
+      }
+      if (!parsed || !Array.isArray(parsed.results)) {
+        return jsonResponse({ error: 'llm returned non-json', raw: content.slice(0, 500), batch_start: i }, 502)
+      }
+
+      const batchResults = parsed.results as Array<{ cluster_id: number; valid: boolean; name: string; definition: string; confidence: number }>
+      allResults.push(...batchResults)
+
+      // 合并 usage（最后一批的 usage 作为代表，或累加）
+      const batchUsage = (llmBody as { usage?: unknown }).usage
+      if (batchUsage) totalUsage = batchUsage
     }
 
-    const usage = (llmBody as { usage?: unknown }).usage ?? null
-    return jsonResponse({ results: parsed.results, usage })
+    return jsonResponse({ results: allResults, usage: totalUsage })
   } catch (e) {
     console.error('name-topics unhandled error', e)
     return jsonResponse({ error: 'internal server error' }, 500)
