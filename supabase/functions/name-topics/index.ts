@@ -13,7 +13,6 @@ const PRIMARY_MODEL = 'deepseek-v4-flash'
 
 // AMD fallback 配置
 const FALLBACK_URL = 'https://developer.amd.com.cn/radeon/v1/chat/completions'
-const FALLBACK_KEY = '***REMOVED-AMD-KEY***'
 const FALLBACK_MODEL = 'DeepSeek-V4-Flash'
 const MAX_CLUSTERS = 60
 const MAX_SAMPLES_PER_CLUSTER = 8
@@ -251,8 +250,15 @@ async function callBatch(
   }
 
   const rawText = await response.text()
-  const parsed = parseUpstreamResponse(rawText)
-  const results = validateBatchResults(parsed.results, batch)
+  let parsed: { results: TopicResult[]; usage: unknown }
+  let results: TopicResult[]
+  try {
+    parsed = parseUpstreamResponse(rawText)
+    results = validateBatchResults(parsed.results, batch)
+  } catch (error) {
+    // 200 但输出无法解析、漏簇或字段错误，也应触发备用模型，不能直接冒泡成 500。
+    throw new UpstreamError(`${model} returned unusable output: ${String(error)}`, true, response.status)
+  }
 
   return {
     results,
@@ -260,7 +266,7 @@ async function callBatch(
   }
 }
 
-async function nameBatch(batch: ClusterInput[], apiKey: string) {
+async function nameBatch(batch: ClusterInput[], apiKey: string, fallbackKey: string) {
   try {
     return await callBatch(batch, PRIMARY_MODEL, apiKey)
   } catch (primaryError) {
@@ -274,7 +280,7 @@ async function nameBatch(batch: ClusterInput[], apiKey: string) {
       // 禁止记录 excerpt、prompt、模型原始输出
     })
 
-    return await callBatch(batch, FALLBACK_MODEL, FALLBACK_KEY, FALLBACK_URL)
+    return await callBatch(batch, FALLBACK_MODEL, fallbackKey, FALLBACK_URL)
   }
 }
 
@@ -323,6 +329,10 @@ Deno.serve(async (req) => {
     if (!apiKey) {
       return jsonResponse({ error: 'missing OPENAI_API_KEY secret' }, 500)
     }
+    const fallbackKey = Deno.env.get('AMD_API_KEY')
+    if (!fallbackKey) {
+      return jsonResponse({ error: 'missing AMD_API_KEY secret' }, 500)
+    }
 
     let requestBody: unknown
     try {
@@ -352,7 +362,7 @@ Deno.serve(async (req) => {
       while (true) {
         const index = nextIndex++
         if (index >= batches.length) return
-        outputs[index] = await nameBatch(batches[index], apiKey)
+        outputs[index] = await nameBatch(batches[index], apiKey, fallbackKey)
       }
     }
 
@@ -369,6 +379,10 @@ Deno.serve(async (req) => {
     return jsonResponse({ results: allResults, usage })
   } catch (e) {
     console.error('name-topics unhandled error', e)
-    return jsonResponse({ error: 'internal server error' }, 500)
+    // 只返回错误类别，不回传 prompt、摘要或上游原始正文。
+    return jsonResponse({
+      error: e instanceof UpstreamError ? 'all llm providers failed' : 'internal server error',
+      detail: e instanceof Error ? e.message.slice(0, 240) : String(e).slice(0, 240),
+    }, e instanceof UpstreamError ? 502 : 500)
   }
 })
