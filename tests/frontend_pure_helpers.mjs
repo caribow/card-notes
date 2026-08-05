@@ -49,7 +49,7 @@ vm.runInContext([
   'draftStorageKey', 'quickDraftKey', 'newDraftKey', 'modalDraftKey',
   'editDraftKey', 'nextDraftRevision', 'saveDraft', 'readDraft', 'getDraftRevision', 'clearDraft', 'clearDraftIfRevision', 'touchDraftRevision', 'chooseModalDraft', 'isEditDraftCurrent', 'isUploadSessionCurrent',
   'isSignedUrlCacheFresh', 'noteTitle', 'findNoteByTitle', 'noteLinkLabel', 'noteLinkToken', 'parseBilink',
-].map(functionLine).join('\n'), context);
+].map(functionBlock).join('\n'), context);
 vm.runInContext([functionBlock('escapeHTML'), functionBlock('renderMD')].join('\n'), context);
 
 const userAQuick = context.draftStorageKey(context.QUICK_DRAFT_KEY, 'user-a');
