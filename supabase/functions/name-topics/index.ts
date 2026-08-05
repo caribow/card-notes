@@ -153,11 +153,36 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: 'llm api failed', detail }, 502)
     }
 
+    // 先读 text 再解析，兼容上游返回 BOM / SSE / 非标准 JSON 的情况
     let llmBody: unknown
     try {
-      llmBody = await llmResponse.json()
-    } catch {
-      return jsonResponse({ error: 'llm returned invalid response' }, 502)
+      const rawText = await llmResponse.text()
+      // 去 BOM
+      const cleanText = rawText.replace(/^\uFEFF/, '')
+      // 检测 SSE 流式格式（data: {...}\n\n）
+      if (cleanText.startsWith('data: ')) {
+        const chunks: string[] = []
+        for (const line of cleanText.split('\n')) {
+          if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+            try {
+              const chunk = JSON.parse(line.slice(6))
+              const delta = chunk?.choices?.[0]?.delta?.content
+              if (typeof delta === 'string') chunks.push(delta)
+            } catch { /* 忽略无法解析的行 */ }
+          }
+        }
+        llmBody = { choices: [{ message: { content: chunks.join('') } }] }
+      } else {
+        llmBody = JSON.parse(cleanText)
+      }
+    } catch (parseErr) {
+      // 记录上游原始响应特征（不记正文），便于定位
+      console.error('name-topics upstream parse failed', {
+        status: llmResponse.status,
+        contentType: llmResponse.headers.get('content-type'),
+        error: String(parseErr),
+      })
+      return jsonResponse({ error: 'llm returned invalid response', detail: 'upstream body is not valid JSON' }, 502)
     }
 
     const content = (llmBody as { choices?: Array<{ message?: { content?: unknown } }> })
