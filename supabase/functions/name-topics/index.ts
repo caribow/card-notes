@@ -9,8 +9,12 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const CHAT_URL = 'https://api.gptsapi.net/v1/chat/completions'
-const PRIMARY_MODEL = 'wild-haiku-4-5-20251001'
-const FALLBACK_MODEL = 'gemini-3-flash-preview'
+const PRIMARY_MODEL = 'deepseek-v4-flash'
+
+// AMD fallback 配置
+const FALLBACK_URL = 'https://developer.amd.com.cn/radeon/v1/chat/completions'
+const FALLBACK_KEY = '***REMOVED-AMD-KEY***'
+const FALLBACK_MODEL = 'DeepSeek-V4-Flash'
 const MAX_CLUSTERS = 60
 const MAX_SAMPLES_PER_CLUSTER = 8
 const MAX_EXCERPT_LENGTH = 500
@@ -193,13 +197,14 @@ async function callBatch(
   batch: ClusterInput[],
   model: string,
   apiKey: string,
+  url: string = CHAT_URL,
 ): Promise<{ results: TopicResult[]; usage: unknown }> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS)
 
   let response: Response
   try {
-    response = await fetch(CHAT_URL, {
+    response = await fetch(url, {
       method: 'POST',
       signal: controller.signal,
       headers: {
@@ -262,14 +267,14 @@ async function nameBatch(batch: ClusterInput[], apiKey: string) {
     const e = primaryError as UpstreamError
     if (!e.retryable) throw e
 
-    console.warn('name-topics primary failed; using fallback', {
+    console.warn('name-topics primary failed; using AMD fallback', {
       model: PRIMARY_MODEL,
       status: e.status ?? null,
       clusterIds: batch.map(c => c.cluster_id),
       // 禁止记录 excerpt、prompt、模型原始输出
     })
 
-    return await callBatch(batch, FALLBACK_MODEL, apiKey)
+    return await callBatch(batch, FALLBACK_MODEL, FALLBACK_KEY, FALLBACK_URL)
   }
 }
 
