@@ -177,12 +177,27 @@ Deno.serve(async (req) => {
       }
     } catch (parseErr) {
       // 记录上游原始响应特征（不记正文），便于定位
+      const rawPreview = rawText.slice(0, 200)
+      const previewHash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(rawPreview))
+        .then(b => Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2, '0')).join('').slice(0, 16))
       console.error('name-topics upstream parse failed', {
         status: llmResponse.status,
         contentType: llmResponse.headers.get('content-type'),
+        contentLength: llmResponse.headers.get('content-length'),
         error: String(parseErr),
+        rawLength: rawText.length,
+        rawPreviewHash: previewHash,
+        rawStartsWith: rawText.slice(0, 50).replace(/[^\x20-\x7E]/g, '?'),
+        rawEndsWith: rawText.slice(-50).replace(/[^\x20-\x7E]/g, '?'),
       })
-      return jsonResponse({ error: 'llm returned invalid response', detail: 'upstream body is not valid JSON' }, 502)
+      return jsonResponse({
+        error: 'llm returned invalid response',
+        detail: 'upstream body is not valid JSON',
+        upstream_status: llmResponse.status,
+        upstream_content_type: llmResponse.headers.get('content-type'),
+        upstream_body_length: rawText.length,
+        upstream_starts_with: rawText.slice(0, 80).replace(/[^\x20-\x7E]/g, '?'),
+      }, 502)
     }
 
     const content = (llmBody as { choices?: Array<{ message?: { content?: unknown } }> })
