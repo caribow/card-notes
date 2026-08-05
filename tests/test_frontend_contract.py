@@ -315,6 +315,16 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("Deno.env.get('OPENAI_API_KEY')", EDGE_NAMETOPICS)  # 密钥只在 secrets
         self.assertNotIn('sk-', EDGE_NAMETOPICS)  # 函数源码无明文 key
 
+    def test_single_user_server_boundaries_are_fail_closed(self):
+        self.assertIn("Deno.env.get('CARD_NOTES_OWNER_ID')", EDGE_NAMETOPICS)
+        self.assertIn('user.id !== allowedUserId', EDGE_NAMETOPICS)
+        self.assertIn("Deno.env.get('CARD_NOTES_OWNER_ID')", EDGE)
+        self.assertIn('user.id !== allowedUserId', EDGE)
+        self.assertIn(".eq('owner_id', allowedUserId)", EDGE)
+        self.assertIn('drop function if exists public.import_fanfou(text, uuid)', MIGRATION_SQL.lower())
+        self.assertIn('revoke all on table public.api_keys', MIGRATION_SQL.lower())
+        self.assertIn('private.is_card_notes_owner() and auth.uid() = owner_id', MIGRATION_SQL.lower())
+
     def test_mobile_fullscreen_surface(self):
         self.assertNotIn('<span class="topbar-brand">闪念笔记</span>', HTML)
         self.assertIn(".modal{max-width:none;padding:0;transform:none}", HTML)

@@ -324,6 +324,16 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: 'unauthorized' }, 401)
     }
 
+    // 这是单用户应用：有效 JWT 不等于有权消耗 LLM 额度。
+    // 必须再命中服务端 owner allowlist，防止陌生注册账号盗刷。
+    const allowedUserId = Deno.env.get('CARD_NOTES_OWNER_ID')
+    if (!allowedUserId) {
+      return jsonResponse({ error: 'missing owner configuration' }, 500)
+    }
+    if (user.id !== allowedUserId) {
+      return jsonResponse({ error: 'forbidden' }, 403)
+    }
+
     // 鉴权通过后才检查密钥配置，避免向未授权请求暴露配置状态
     const apiKey = Deno.env.get('OPENAI_API_KEY')
     if (!apiKey) {

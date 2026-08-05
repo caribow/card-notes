@@ -24,6 +24,10 @@ Deno.serve(async (req) => {
   if (!apiKey) {
     return new Response(JSON.stringify({ error: 'missing OPENAI_API_KEY secret' }), { status: 500 })
   }
+  const allowedUserId = Deno.env.get('CARD_NOTES_OWNER_ID')
+  if (!allowedUserId) {
+    return new Response(JSON.stringify({ error: 'missing owner configuration' }), { status: 500 })
+  }
 
   // 鉴权：两条合法路径
   //  A) 数据库触发器经共享密钥 INTERNAL_EMBED_SECRET 调用（pg_net 异步，无用户 JWT）
@@ -43,6 +47,9 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authErr } = await userClient.auth.getUser()
     if (authErr || !user) {
       return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401 })
+    }
+    if (user.id !== allowedUserId) {
+      return new Response(JSON.stringify({ error: 'forbidden' }), { status: 403 })
     }
   }
 
@@ -89,6 +96,7 @@ Deno.serve(async (req) => {
     .from('notes')
     .update({ embedding: JSON.stringify(vector) })
     .eq('id', noteId)
+    .eq('owner_id', allowedUserId)
   if (error) {
     return new Response(JSON.stringify({ error: error.message }), { status: 500 })
   }
