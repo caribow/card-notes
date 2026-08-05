@@ -9,10 +9,15 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const CHAT_URL = 'https://api.gptsapi.net/v1/chat/completions'
-const MODEL = 'deepseek-v4-flash'
+const PRIMARY_MODEL = 'wild-haiku-4-5-20251001'
+const FALLBACK_MODEL = 'gemini-3-flash-preview'
 const MAX_CLUSTERS = 60
 const MAX_SAMPLES_PER_CLUSTER = 8
 const MAX_EXCERPT_LENGTH = 500
+const BATCH_SIZE = 5
+const MAX_CONCURRENCY = 3
+const UPSTREAM_TIMEOUT_MS = 35_000
+const MAX_TOKENS = 1600
 
 // Supabase Edge Function 标准 CORS 头（覆盖 invoke 会带的所有请求头）
 const corsHeaders = {
@@ -31,6 +36,24 @@ function jsonResponse(body: unknown, status = 200): Response {
 interface ClusterInput {
   cluster_id: number
   samples: Array<{ date: string; excerpt: string }>
+}
+
+interface TopicResult {
+  cluster_id: number
+  valid: boolean
+  name: string
+  definition: string
+  confidence: number
+}
+
+class UpstreamError extends Error {
+  constructor(
+    message: string,
+    readonly retryable: boolean,
+    readonly status?: number,
+  ) {
+    super(message)
+  }
 }
 
 function parseClusters(body: unknown): ClusterInput[] {
@@ -83,6 +106,187 @@ function buildPrompt(clusters: ClusterInput[]): string {
 ${blocks}`
 }
 
+function parseUpstreamResponse(rawText: string): { results: TopicResult[]; usage: unknown } {
+  // 去 BOM
+  const cleanText = rawText.replace(/^\uFEFF/, '')
+
+  // 检测 SSE 流式格式（data: {...}\n\n）
+  if (cleanText.startsWith('data: ')) {
+    const chunks: string[] = []
+    for (const line of cleanText.split('\n')) {
+      if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+        try {
+          const chunk = JSON.parse(line.slice(6))
+          const delta = chunk?.choices?.[0]?.delta?.content
+          if (typeof delta === 'string') chunks.push(delta)
+        } catch { /* 忽略无法解析的行 */ }
+      }
+    }
+    const content = chunks.join('')
+    const parsed = JSON.parse(content)
+    return { results: parsed.results, usage: null }
+  }
+
+  // 标准 JSON
+  const body = JSON.parse(cleanText)
+  const content = body?.choices?.[0]?.message?.content
+  if (typeof content !== 'string') {
+    throw new Error('missing content')
+  }
+
+  // 尝试直接解析 content，失败则提取第一个 { 到最后一个 }
+  let parsed: { results?: unknown }
+  try {
+    parsed = JSON.parse(content)
+  } catch {
+    const s = content.indexOf('{')
+    const e = content.lastIndexOf('}')
+    if (s >= 0 && e > s) {
+      parsed = JSON.parse(content.slice(s, e + 1))
+    } else {
+      throw new Error('non-json content')
+    }
+  }
+
+  if (!Array.isArray(parsed.results)) {
+    throw new Error('missing results array')
+  }
+
+  return { results: parsed.results, usage: body.usage }
+}
+
+function validateBatchResults(results: TopicResult[], batch: ClusterInput[]): TopicResult[] {
+  const expectedIds = new Set(batch.map(c => c.cluster_id))
+  const seen = new Set<number>()
+
+  for (const r of results) {
+    if (!expectedIds.has(r.cluster_id)) {
+      throw new Error(`unexpected cluster_id ${r.cluster_id}`)
+    }
+    if (seen.has(r.cluster_id)) {
+      throw new Error(`duplicate cluster_id ${r.cluster_id}`)
+    }
+    seen.add(r.cluster_id)
+
+    if (typeof r.valid !== 'boolean') throw new Error('invalid valid field')
+    if (typeof r.confidence !== 'number' || !Number.isFinite(r.confidence)) {
+      r.confidence = 0
+    }
+    r.confidence = Math.max(0, Math.min(1, r.confidence))
+
+    if (r.valid && (!r.name || !r.definition)) {
+      throw new Error(`cluster ${r.cluster_id} valid but missing name/definition`)
+    }
+  }
+
+  // 检查是否有缺失的 cluster_id
+  for (const id of expectedIds) {
+    if (!seen.has(id)) {
+      throw new Error(`missing cluster_id ${id}`)
+    }
+  }
+
+  return results
+}
+
+async function callBatch(
+  batch: ClusterInput[],
+  model: string,
+  apiKey: string,
+): Promise<{ results: TopicResult[]; usage: unknown }> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS)
+
+  let response: Response
+  try {
+    response = await fetch(CHAT_URL, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          {
+            role: 'system',
+            content: '你是严格的 JSON API。只返回一个 JSON 对象，不要解释，不要使用 Markdown。',
+          },
+          {
+            role: 'user',
+            content: buildPrompt(batch),
+          },
+        ],
+        temperature: 0.2,
+        max_tokens: MAX_TOKENS,
+        stream: false,
+      }),
+    })
+  } catch (error) {
+    const timeout = error instanceof DOMException && error.name === 'AbortError'
+    throw new UpstreamError(
+      timeout ? `${model} timed out` : `${model} fetch failed: ${String(error)}`,
+      true,
+    )
+  } finally {
+    clearTimeout(timer)
+  }
+
+  if (!response.ok) {
+    // 不把上游 HTML 或可能含隐私的正文返回前端
+    await response.body?.cancel()
+    throw new UpstreamError(
+      `${model} returned ${response.status}`,
+      response.status === 408 ||
+        response.status === 429 ||
+        response.status >= 500,
+      response.status,
+    )
+  }
+
+  const rawText = await response.text()
+  const parsed = parseUpstreamResponse(rawText)
+  const results = validateBatchResults(parsed.results, batch)
+
+  return {
+    results,
+    usage: parsed.usage ?? null,
+  }
+}
+
+async function nameBatch(batch: ClusterInput[], apiKey: string) {
+  try {
+    return await callBatch(batch, PRIMARY_MODEL, apiKey)
+  } catch (primaryError) {
+    const e = primaryError as UpstreamError
+    if (!e.retryable) throw e
+
+    console.warn('name-topics primary failed; using fallback', {
+      model: PRIMARY_MODEL,
+      status: e.status ?? null,
+      clusterIds: batch.map(c => c.cluster_id),
+      // 禁止记录 excerpt、prompt、模型原始输出
+    })
+
+    return await callBatch(batch, FALLBACK_MODEL, apiKey)
+  }
+}
+
+function mergeUsage(usages: unknown[]): unknown {
+  const valid = usages.filter(u => u && typeof u === 'object') as Array<Record<string, number>>
+  if (valid.length === 0) return null
+  const total: Record<string, number> = {}
+  for (const u of valid) {
+    for (const [k, v] of Object.entries(u)) {
+      if (typeof v === 'number') {
+        total[k] = (total[k] || 0) + v
+      }
+    }
+  }
+  return total
+}
+
 Deno.serve(async (req) => {
   // 必须在方法限制、鉴权、读请求体之前处理浏览器 CORS 预检
   if (req.method === 'OPTIONS') {
@@ -129,116 +333,35 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: 'invalid clusters payload' }, 400)
     }
 
-    let llmResponse: Response
-    const BATCH_SIZE = 5
-    const allResults: Array<{ cluster_id: number; valid: boolean; name: string; definition: string; confidence: number }> = []
-    let totalUsage: unknown = null
-
-    // 分批调用，避免单次 prompt 过长导致上游 504
+    // 分批
+    const batches: ClusterInput[][] = []
     for (let i = 0; i < clusters.length; i += BATCH_SIZE) {
-      const batch = clusters.slice(i, i + BATCH_SIZE)
-      try {
-        llmResponse = await fetch(CHAT_URL, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: MODEL,
-            messages: [{ role: 'user', content: buildPrompt(batch) }],
-            temperature: 0.3,
-            response_format: { type: 'json_object' },
-          }),
-        })
-      } catch (e) {
-        return jsonResponse({ error: 'llm fetch failed', detail: String(e), batch_start: i }, 502)
-      }
-
-      if (!llmResponse.ok) {
-        const detail = (await llmResponse.text()).slice(0, 1000)
-        return jsonResponse({ error: 'llm api failed', detail, batch_start: i }, 502)
-      }
-
-      // 先读 text 再解析，兼容上游返回 BOM / SSE / 非标准 JSON 的情况
-      let llmBody: unknown
-      let rawText = ''
-      try {
-        rawText = await llmResponse.text()
-        // 去 BOM
-        const cleanText = rawText.replace(/^\uFEFF/, '')
-        // 检测 SSE 流式格式（data: {...}\n\n）
-        if (cleanText.startsWith('data: ')) {
-          const chunks: string[] = []
-          for (const line of cleanText.split('\n')) {
-            if (line.startsWith('data: ') && line !== 'data: [DONE]') {
-              try {
-                const chunk = JSON.parse(line.slice(6))
-                const delta = chunk?.choices?.[0]?.delta?.content
-                if (typeof delta === 'string') chunks.push(delta)
-              } catch { /* 忽略无法解析的行 */ }
-            }
-          }
-          llmBody = { choices: [{ message: { content: chunks.join('') } }] }
-        } else {
-          llmBody = JSON.parse(cleanText)
-        }
-      } catch (parseErr) {
-        // 记录上游原始响应特征（不记正文），便于定位
-        const rawPreview = rawText.slice(0, 200)
-        const previewHash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(rawPreview))
-          .then(b => Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2, '0')).join('').slice(0, 16))
-        console.error('name-topics upstream parse failed', {
-          status: llmResponse.status,
-          contentType: llmResponse.headers.get('content-type'),
-          contentLength: llmResponse.headers.get('content-length'),
-          error: String(parseErr),
-          rawLength: rawText.length,
-          rawPreviewHash: previewHash,
-          rawStartsWith: rawText.slice(0, 50).replace(/[^\x20-\x7E]/g, '?'),
-          rawEndsWith: rawText.slice(-50).replace(/[^\x20-\x7E]/g, '?'),
-          batch_start: i,
-        })
-        return jsonResponse({
-          error: 'llm returned invalid response',
-          detail: 'upstream body is not valid JSON',
-          upstream_status: llmResponse.status,
-          upstream_content_type: llmResponse.headers.get('content-type'),
-          upstream_body_length: rawText.length,
-          upstream_starts_with: rawText.slice(0, 80).replace(/[^\x20-\x7E]/g, '?'),
-          batch_start: i,
-        }, 502)
-      }
-
-      const content = (llmBody as { choices?: Array<{ message?: { content?: unknown } }> })
-        ?.choices?.[0]?.message?.content
-      if (typeof content !== 'string') {
-        return jsonResponse({ error: 'llm response missing content', batch_start: i }, 502)
-      }
-
-      let parsed: { results?: unknown } | null = null
-      try {
-        parsed = JSON.parse(content)
-      } catch {
-        const s = content.indexOf('{')
-        const e2 = content.lastIndexOf('}')
-        if (s >= 0 && e2 > s) {
-          try { parsed = JSON.parse(content.slice(s, e2 + 1)) } catch { parsed = null }
-        }
-      }
-      if (!parsed || !Array.isArray(parsed.results)) {
-        return jsonResponse({ error: 'llm returned non-json', raw: content.slice(0, 500), batch_start: i }, 502)
-      }
-
-      const batchResults = parsed.results as Array<{ cluster_id: number; valid: boolean; name: string; definition: string; confidence: number }>
-      allResults.push(...batchResults)
-
-      // 合并 usage（最后一批的 usage 作为代表，或累加）
-      const batchUsage = (llmBody as { usage?: unknown }).usage
-      if (batchUsage) totalUsage = batchUsage
+      batches.push(clusters.slice(i, i + BATCH_SIZE))
     }
 
-    return jsonResponse({ results: allResults, usage: totalUsage })
+    // 有界并发处理
+    const outputs: Array<{ results: TopicResult[]; usage: unknown }> = new Array(batches.length)
+    let nextIndex = 0
+
+    async function worker() {
+      while (true) {
+        const index = nextIndex++
+        if (index >= batches.length) return
+        outputs[index] = await nameBatch(batches[index], apiKey)
+      }
+    }
+
+    await Promise.all(
+      Array.from(
+        { length: Math.min(MAX_CONCURRENCY, batches.length) },
+        () => worker(),
+      ),
+    )
+
+    const allResults = outputs.flatMap(output => output.results)
+    const usage = mergeUsage(outputs.map(output => output.usage))
+
+    return jsonResponse({ results: allResults, usage })
   } catch (e) {
     console.error('name-topics unhandled error', e)
     return jsonResponse({ error: 'internal server error' }, 500)
